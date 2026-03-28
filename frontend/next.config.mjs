@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   webpack: (config) => {
-    // Prevent SSR bundling issues from Wagmi/Viem dependencies
+    // Prevent SSR bundling issues from Sui/dApp Kit dependencies
     config.externals.push("pino-pretty", "lokijs", "encoding");
     return config;
   },

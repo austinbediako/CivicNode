@@ -2,13 +2,13 @@
 
 import { useWallet } from "@/hooks/useWallet";
 import { useWallets, useConnectWallet } from "@mysten/dapp-kit";
-import { isEnokiWallet, isGoogleWallet, isTwitchWallet } from "@mysten/enoki";
+import { isEnokiWallet, isGoogleWallet } from "@mysten/enoki";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 /**
  * Wallet connection UI for the header.
- * Uses dApp Kit + Enoki: shows Google/Twitch OAuth buttons.
+ * Uses dApp Kit + Enoki: shows Google OAuth button.
  */
 export function WalletModal() {
   const { connected, address, disconnect, isAuthenticating, authError } = useWallet();
@@ -19,7 +19,6 @@ export function WalletModal() {
   const [connectError, setConnectError] = useState<string | null>(null);
 
   const googleWallet = enokiWallets.find(isGoogleWallet);
-  const twitchWallet = enokiWallets.find(isTwitchWallet);
 
   // Authenticating or connecting
   if (isAuthenticating || isPending) {
@@ -84,16 +83,7 @@ export function WalletModal() {
                 <span>Sign in with Google</span>
               </button>
             )}
-            {twitchWallet && (
-              <button
-                onClick={() => handleConnect(twitchWallet)}
-                className="flex items-center gap-3 px-3 py-2.5 text-sm text-dark-200 hover:bg-dark-700 hover:text-white rounded-lg transition-colors focus:outline-none w-full"
-              >
-                <TwitchIcon />
-                <span>Sign in with Twitch</span>
-              </button>
-            )}
-            {!googleWallet && !twitchWallet && (
+            {!googleWallet && (
               <div className="px-3 py-3 text-sm text-dark-400 flex items-center gap-2">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 Loading…
@@ -122,10 +112,3 @@ function GoogleIcon() {
   );
 }
 
-function TwitchIcon() {
-  return (
-    <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none">
-      <path d="M11.571 4.714h1.715v5.143H11.57V4.714zm4.715 0H18v5.143h-1.714V4.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z" fill="#9146FF"/>
-    </svg>
-  );
-}

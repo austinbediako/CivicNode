@@ -32,16 +32,13 @@ const suiClient = new SuiJsonRpcClient({ url: SUI_NETWORK === "mainnet" ? mainne
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
-  // Register Enoki wallets (Google, Twitch) so dApp Kit can discover them
+  // Register Enoki wallet (Google) so dApp Kit can discover it
   useEffect(() => {
     const cleanup: any = registerEnokiWallets({
       apiKey: process.env.NEXT_PUBLIC_ENOKI_API_KEY || "",
       providers: {
         google: {
           clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "",
-        },
-        twitch: {
-          clientId: process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID || "",
         },
       },
       client: suiClient,
