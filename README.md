@@ -68,10 +68,9 @@ graph TD
 
 | Name | Role | Core Focus |
 | :--- | :--- | :--- |
-| **Austin Bediako** | Product & Frontend | Vision, UI/UX, Prompt Engineering, Auth Guard. |
-| **Nana Asiamah** | Research & Quality | Feature Spec, User Research (Ghanaian context), Testing. |
-| **Joseph Gyimah** | Narrative & Growth | Community Partnerships, Landing Page Copy, Demo Script. |
-| **Theophilus** | Backend & Blockchain | Move Contracts, API Services, Infrastructure, Cron Jobs. |
+| **Austin Bediako** | Product & Fullstack API | Vision, CI/CD, Backend API (Node/Express), Prompt Engineering, Anthropic Service. |
+| **Nana Asiamah** | Research, Quality & Move | Feature Spec, User Research, Member Management UI, Move Smart Contracts (Aptos), Unit Testing. |
+| **Joseph Gyimah** | Growth, Ops & Infra | Community Partnerships, Landing Page, Infrastructure (Railway/Vercel), DevOps, Cron Jobs. |
 
 ---
 
