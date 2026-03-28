@@ -6,6 +6,8 @@ export interface ICommunity extends Document {
   quorumThreshold: number;
   memberCount: number;
   memberWallets: string[];
+  onChainId: string | null;
+  adminCapId: string | null;
   createdAt: Date;
 }
 
@@ -36,6 +38,16 @@ const communitySchema = new Schema<ICommunity>(
     memberWallets: {
       type: [String],
       default: [],
+    },
+    onChainId: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    adminCapId: {
+      type: String,
+      default: null,
+      trim: true,
     },
   },
   {

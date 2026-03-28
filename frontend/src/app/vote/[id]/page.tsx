@@ -105,6 +105,7 @@ export default function VotePage() {
               </h3>
               <VoteButtons
                 proposalId={proposal.id}
+                communityObjectId={proposal.communityId}
                 proposalStatus={proposal.status}
                 hasVoted={hasVoted}
                 onVoteSuccess={handleVoteSuccess}

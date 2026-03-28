@@ -25,7 +25,7 @@ export function initializeEnoki() {
       twitch: { clientId: process.env.NEXT_PUBLIC_TWITCH_CLIENT_ID || 'dummy-twitch-id' },
     },
     client,
-    network: 'testnet',
+    network,
   });
 
   enokiRegistered = true;

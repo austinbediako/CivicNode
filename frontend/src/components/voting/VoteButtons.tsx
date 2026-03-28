@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 interface VoteButtonsProps {
   proposalId: string;
+  communityObjectId: string;
   proposalStatus: ProposalStatus;
   hasVoted: boolean;
   onVoteSuccess: () => void;
@@ -44,6 +45,7 @@ const voteOptions = [
 
 export function VoteButtons({
   proposalId,
+  communityObjectId,
   proposalStatus,
   hasVoted,
   onVoteSuccess,
@@ -65,7 +67,7 @@ export function VoteButtons({
 
     try {
       // Build and submit the on-chain transaction
-      const payload = buildVoteTx(proposalId, choiceIndex);
+      const payload = buildVoteTx(communityObjectId, proposalId, choiceIndex);
 
       // TODO(civicnode): Submit tx via wallet signTransaction once connected to live network
       // For now, simulate a tx hash until Enoki wallet signing is wired up

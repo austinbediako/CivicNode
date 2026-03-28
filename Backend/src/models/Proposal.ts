@@ -27,6 +27,7 @@ export interface IProposal extends Document {
   noVotes: number;
   abstainVotes: number;
   txHash: string | null;
+  onChainId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -103,6 +104,7 @@ const proposalSchema = new Schema<IProposal>(
     noVotes: { type: Number, default: 0, min: 0 },
     abstainVotes: { type: Number, default: 0, min: 0 },
     txHash: { type: String, default: null },
+    onChainId: { type: String, default: null, trim: true },
   },
   {
     timestamps: true,

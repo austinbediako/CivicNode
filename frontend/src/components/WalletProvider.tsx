@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
-import { type Wallet, type StandardConnectFeature, type StandardConnectOutput, type StandardEventsFeature, type SuiSignTransactionBlockOutput } from "@mysten/wallet-standard";
+import { type Wallet, type StandardConnectFeature, type StandardConnectOutput, type StandardEventsFeature } from "@mysten/wallet-standard";
 import { initializeEnoki } from "@/lib/enoki";
 
 interface WalletContextState {
@@ -10,7 +10,7 @@ interface WalletContextState {
   currentAccount: any | null; // Account interface depends on @mysten/wallet-standard
   connect: (walletName: string) => Promise<void>;
   disconnect: () => void;
-  signTransaction: (transaction: any) => Promise<SuiSignTransactionBlockOutput | undefined>;
+  signTransaction: (transaction: any) => Promise<any>;
 }
 
 const WalletContext = createContext<WalletContextState | undefined>(undefined);
@@ -83,13 +83,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       throw new Error("Wallet not connected");
     }
 
-    const feature: any = currentWallet.features["sui:signTransactionBlock"];
-    if (!feature) throw new Error("Wallet cannot sign transaction blocks");
+    // Prefer sui:signTransaction (current), fall back to deprecated sui:signTransactionBlock
+    const feature: any =
+      currentWallet.features["sui:signTransaction"] ||
+      currentWallet.features["sui:signTransactionBlock"];
+    if (!feature) throw new Error("Wallet cannot sign transactions");
 
+    if (currentWallet.features["sui:signTransaction"]) {
+      return await feature.signTransaction({
+        transaction,
+        account: currentAccount,
+        chain: 'sui:testnet',
+      });
+    }
+
+    // Legacy fallback
     return await feature.signTransactionBlock({
       transactionBlock: transaction,
       account: currentAccount,
-      chain: 'sui:testnet'
+      chain: 'sui:testnet',
     });
 
   }, [currentWallet, currentAccount]);

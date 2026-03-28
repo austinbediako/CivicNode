@@ -93,7 +93,22 @@ async function processProposal(proposal: InstanceType<typeof Proposal>): Promise
 
   // Proposal passed — execute on-chain
   try {
-    const txHash = await executeProposal(proposalId);
+    // Verify we have the on-chain object IDs needed for PTB
+    const proposalOnChainId = proposal.onChainId;
+    const communityOnChainId = community.onChainId;
+    const adminCapId = community.adminCapId;
+
+    if (!proposalOnChainId || !communityOnChainId || !adminCapId) {
+      console.error(
+        `[execution] Missing on-chain IDs for proposal ${proposalId}: ` +
+        `proposal=${proposalOnChainId}, community=${communityOnChainId}, adminCap=${adminCapId}`
+      );
+      proposal.status = ProposalStatus.EXECUTION_FAILED;
+      await proposal.save();
+      return;
+    }
+
+    const txHash = await executeProposal(proposalOnChainId, communityOnChainId, adminCapId);
 
     proposal.status = ProposalStatus.EXECUTED;
     proposal.txHash = txHash;

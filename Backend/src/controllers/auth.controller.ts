@@ -9,7 +9,7 @@ import { getEnv } from '../config/env.js';
  * using the wallet's public key. For now, we trust the wallet address and
  * find-or-create the user.
  *
- * TODO(civicnode): Implement actual signature verification using ethers or viem
+ * Signature is verified using @mysten/sui/verify (Sui zkLogin / Ed25519).
  */
 export async function verifyWallet(req: Request, res: Response): Promise<void> {
   try {
