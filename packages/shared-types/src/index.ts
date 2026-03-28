@@ -125,7 +125,7 @@ export interface ProposalDraft {
 
 export interface TreasuryInfo {
   communityId: string;
-  balanceAPT: number;
+  balanceSUI: number;
   balanceGHS: number;
   transactions: Transaction[];
 }
