@@ -6,8 +6,8 @@ const envSchema = z.object({
     .min(1, 'MONGODB_URI cannot be empty'),
 
   REDIS_URL: z
-    .string({ required_error: 'REDIS_URL is required — provide a Redis connection URL' })
-    .min(1, 'REDIS_URL cannot be empty'),
+    .string()
+    .default('redis://localhost:6379'),
 
   JWT_SECRET: z
     .string({ required_error: 'JWT_SECRET is required — set a strong random secret for signing tokens' })

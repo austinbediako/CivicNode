@@ -1,13 +1,11 @@
-import dotenv from 'dotenv';
+// Load .env before anything else — must be the first import
+import 'dotenv/config';
 import mongoose from 'mongoose';
 import { validateEnv } from './config/env.js';
 import { connectDatabase } from './config/database.js';
 import { closeRedis, getRedisClient } from './config/redis.js';
 import { startExecutionCron, stopExecutionCron } from './services/execution.js';
 import { createApp } from './app.js';
-
-// Load .env before anything else
-dotenv.config();
 
 async function main(): Promise<void> {
   // Validate all required environment variables upfront
