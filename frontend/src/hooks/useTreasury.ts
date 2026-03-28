@@ -15,7 +15,7 @@ export function useTreasury(communityId: string | null) {
   const treasury = data as TreasuryData | null;
 
   return {
-    balanceAPT: treasury?.balanceAPT ?? 0,
+    balanceSUI: treasury?.balanceSUI ?? 0,
     balanceGHS: treasury?.balanceGHS ?? 0,
     transactions: treasury?.transactions ?? [],
     totalDisbursed: treasury?.totalDisbursed ?? 0,

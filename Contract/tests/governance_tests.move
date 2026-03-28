@@ -1,220 +1,295 @@
-/// Integration tests for the CivicNode governance module.
+/// Integration tests for the CivicNode governance module (Sui Move).
 ///
-/// Each test bootstraps its own isolated environment (timestamp, accounts,
-/// registries) so tests are independent and deterministic.
+/// Each test uses test_scenario to create an isolated environment with
+/// independent object state and clock.
 #[test_only]
 module civicnode::governance_tests {
-    use std::signer;
-    use aptos_framework::timestamp;
-    use aptos_framework::account;
-    use aptos_framework::coin;
-    use aptos_framework::aptos_coin::{Self, AptosCoin};
-    use civicnode::governance;
+    use sui::test_scenario::{Self as ts};
+    use sui::clock::{Self};
+    use sui::coin::{Self};
+    use sui::sui::SUI;
+    use civicnode::governance::{Self, Community, Proposal, AdminCap};
 
-    // -------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------
-
-    /// Stand up the Aptos framework prerequisites that governance relies on
-    /// (timestamp oracle + AptosCoin mint capability for funding test accounts).
-    fun setup_test_env(framework: &signer) {
-        // Initialize the on-chain clock at time = 1 so now_seconds() works.
-        timestamp::set_time_has_started_for_testing(framework);
-    }
-
-    /// Initialise an AptosCoin mint/burn capability and fund `addr`.
-    fun fund_account(framework: &signer, target: &signer, amount: u64) {
-        let target_addr = signer::address_of(target);
-        if (!account::exists_at(target_addr)) {
-            account::create_account_for_test(target_addr);
-        };
-        // Initialize AptosCoin if it hasn't been done yet.
-        // The first call creates the mint/burn caps; subsequent calls
-        // in the same test transaction are idempotent because we check
-        // coin::is_coin_initialized.
-        if (!coin::is_coin_initialized<AptosCoin>()) {
-            let (burn_cap, mint_cap) = aptos_coin::initialize_for_test(framework);
-            // Mint and deposit.
-            let coins = coin::mint<AptosCoin>(amount, &mint_cap);
-            coin::register<AptosCoin>(target);
-            coin::deposit(target_addr, coins);
-            coin::destroy_burn_cap(burn_cap);
-            coin::destroy_mint_cap(mint_cap);
-        } else {
-            // AptosCoin already exists; just register + airdrop via test helper.
-            if (!coin::is_account_registered<AptosCoin>(target_addr)) {
-                coin::register<AptosCoin>(target);
-            };
-        };
-    }
+    const ADMIN: address = @0xAD;
+    const VOTER1: address = @0x123;
+    const VOTER2: address = @0x456;
+    const RECIPIENT: address = @0xBEEF;
 
     // -------------------------------------------------------
     // 1. Create community
     // -------------------------------------------------------
 
-    #[test(admin = @civicnode)]
+    #[test]
     /// Creating a community should make the admin a member and store the quorum.
-    fun test_create_community(admin: &signer) {
-        // Bootstrap framework clock.
-        let framework = account::create_account_for_test(@0x1);
-        setup_test_env(&framework);
+    fun test_create_community() {
+        let mut scenario = ts::begin(ADMIN);
 
-        governance::init_for_testing(admin);
-        governance::create_community(admin, 51);
+        // Create a clock for the test
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
 
-        let admin_addr = signer::address_of(admin);
-        // The admin must be in the member list.
-        assert!(governance::is_member(0, admin_addr), 100);
-        // The quorum threshold must be what we set.
-        assert!(governance::get_quorum_threshold(0) == 51, 101);
+        // Admin creates a community with 51% quorum
+        governance::create_community(51, ts::ctx(&mut scenario));
+
+        // Advance to next tx to inspect shared objects
+        ts::next_tx(&mut scenario, ADMIN);
+
+        let community = ts::take_shared<Community>(&scenario);
+        assert!(governance::is_member(&community, ADMIN), 100);
+        assert!(governance::get_quorum_threshold(&community) == 51, 101);
+        assert!(governance::get_member_count(&community) == 1, 102);
+
+        ts::return_shared(community);
+        clock::destroy_for_testing(clock);
+        ts::end(scenario);
     }
 
     // -------------------------------------------------------
     // 2. Register member
     // -------------------------------------------------------
 
-    #[test(admin = @civicnode, member = @0x123)]
+    #[test]
     /// Adding a member should increase the community's member_count.
-    fun test_register_member(admin: &signer, member: &signer) {
-        let framework = account::create_account_for_test(@0x1);
-        setup_test_env(&framework);
+    fun test_register_member() {
+        let mut scenario = ts::begin(ADMIN);
+        let clock = clock::create_for_testing(ts::ctx(&mut scenario));
 
-        governance::init_for_testing(admin);
-        governance::create_community(admin, 51);
+        governance::create_community(51, ts::ctx(&mut scenario));
+        ts::next_tx(&mut scenario, ADMIN);
 
-        // member_count starts at 1 (admin).
-        assert!(governance::get_member_count(0) == 1, 200);
+        let mut community = ts::take_shared<Community>(&scenario);
+        let admin_cap = ts::take_from_sender<AdminCap>(&scenario);
 
-        let member_addr = signer::address_of(member);
-        governance::register_member(admin, 0, member_addr);
+        assert!(governance::get_member_count(&community) == 1, 200);
 
-        assert!(governance::get_member_count(0) == 2, 201);
-        assert!(governance::is_member(0, member_addr), 202);
+        governance::register_member(&admin_cap, &mut community, VOTER1);
+
+        assert!(governance::get_member_count(&community) == 2, 201);
+        assert!(governance::is_member(&community, VOTER1), 202);
+
+        ts::return_to_sender(&scenario, admin_cap);
+        ts::return_shared(community);
+        clock::destroy_for_testing(clock);
+        ts::end(scenario);
     }
 
     // -------------------------------------------------------
     // 3. Create proposal
     // -------------------------------------------------------
 
-    #[test(admin = @civicnode)]
+    #[test]
     /// A proposal should be created with status = live (1) and correct fields.
-    fun test_create_proposal(admin: &signer) {
-        let framework = account::create_account_for_test(@0x1);
-        setup_test_env(&framework);
+    fun test_create_proposal() {
+        let mut scenario = ts::begin(ADMIN);
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        clock::set_for_testing(&mut clock, 1000); // current time = 1s
 
-        governance::init_for_testing(admin);
-        governance::create_community(admin, 51);
+        governance::create_community(51, ts::ctx(&mut scenario));
+        ts::next_tx(&mut scenario, ADMIN);
 
-        // Duration = 3600 seconds (1 hour).
-        governance::create_proposal(admin, 0, 1000, @0xBEEF, 3600);
+        let mut community = ts::take_shared<Community>(&scenario);
 
-        // Proposal 0 should be live.
-        assert!(governance::get_proposal_status(0) == 1, 300);
+        // Deadline = 3601000ms (well after current time of 1000ms)
+        governance::create_proposal(
+            &mut community,
+            1000,
+            RECIPIENT,
+            3601000,
+            &clock,
+            ts::ctx(&mut scenario),
+        );
+
+        ts::return_shared(community);
+        ts::next_tx(&mut scenario, ADMIN);
+
+        let proposal = ts::take_shared<Proposal>(&scenario);
+        assert!(governance::get_proposal_status(&proposal) == 1, 300);
+
+        ts::return_shared(proposal);
+        clock::destroy_for_testing(clock);
+        ts::end(scenario);
     }
 
     // -------------------------------------------------------
     // 4. Vote on proposal
     // -------------------------------------------------------
 
-    #[test(admin = @civicnode, voter = @0x123)]
+    #[test]
     /// A member should be able to cast a YES vote and the tally should reflect it.
-    fun test_vote_on_proposal(admin: &signer, voter: &signer) {
-        let framework = account::create_account_for_test(@0x1);
-        setup_test_env(&framework);
+    fun test_vote_on_proposal() {
+        let mut scenario = ts::begin(ADMIN);
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        clock::set_for_testing(&mut clock, 1000);
 
-        governance::init_for_testing(admin);
-        governance::create_community(admin, 51);
+        governance::create_community(51, ts::ctx(&mut scenario));
+        ts::next_tx(&mut scenario, ADMIN);
 
-        let voter_addr = signer::address_of(voter);
-        governance::register_member(admin, 0, voter_addr);
+        let mut community = ts::take_shared<Community>(&scenario);
+        let admin_cap = ts::take_from_sender<AdminCap>(&scenario);
 
-        // Proposal with a 1-hour window.
-        governance::create_proposal(admin, 0, 1000, @0xBEEF, 3600);
+        governance::register_member(&admin_cap, &mut community, VOTER1);
 
-        // Voter casts YES (choice = 0).
-        governance::vote_on_proposal(voter, 0, 0);
+        governance::create_proposal(
+            &mut community,
+            1000,
+            RECIPIENT,
+            3601000,
+            &clock,
+            ts::ctx(&mut scenario),
+        );
 
-        assert!(governance::get_yes_votes(0) == 1, 400);
+        ts::return_to_sender(&scenario, admin_cap);
+        ts::return_shared(community);
+        ts::next_tx(&mut scenario, VOTER1);
+
+        let community = ts::take_shared<Community>(&scenario);
+        let mut proposal = ts::take_shared<Proposal>(&scenario);
+
+        // Voter casts YES (choice = 0)
+        governance::vote_on_proposal(&community, &mut proposal, 0, &clock, ts::ctx(&mut scenario));
+
+        assert!(governance::get_yes_votes(&proposal) == 1, 400);
+
+        ts::return_shared(community);
+        ts::return_shared(proposal);
+        clock::destroy_for_testing(clock);
+        ts::end(scenario);
     }
 
     // -------------------------------------------------------
     // 5. Double-vote prevention
     // -------------------------------------------------------
 
-    #[test(admin = @civicnode, voter = @0x123)]
-    #[expected_failure(abort_code = 1003)]
+    #[test]
+    #[expected_failure(abort_code = 1003, location = civicnode::governance)]
     /// Attempting to vote twice on the same proposal must abort with E_ALREADY_VOTED.
-    fun test_double_vote_prevention(admin: &signer, voter: &signer) {
-        let framework = account::create_account_for_test(@0x1);
-        setup_test_env(&framework);
+    fun test_double_vote_prevention() {
+        let mut scenario = ts::begin(ADMIN);
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        clock::set_for_testing(&mut clock, 1000);
 
-        governance::init_for_testing(admin);
-        governance::create_community(admin, 51);
+        governance::create_community(51, ts::ctx(&mut scenario));
+        ts::next_tx(&mut scenario, ADMIN);
 
-        let voter_addr = signer::address_of(voter);
-        governance::register_member(admin, 0, voter_addr);
-        governance::create_proposal(admin, 0, 1000, @0xBEEF, 3600);
+        let mut community = ts::take_shared<Community>(&scenario);
+        let admin_cap = ts::take_from_sender<AdminCap>(&scenario);
 
-        // First vote succeeds.
-        governance::vote_on_proposal(voter, 0, 0);
-        // Second vote must abort.
-        governance::vote_on_proposal(voter, 0, 1);
+        governance::register_member(&admin_cap, &mut community, VOTER1);
+        governance::create_proposal(
+            &mut community,
+            1000,
+            RECIPIENT,
+            3601000,
+            &clock,
+            ts::ctx(&mut scenario),
+        );
+
+        ts::return_to_sender(&scenario, admin_cap);
+        ts::return_shared(community);
+        ts::next_tx(&mut scenario, VOTER1);
+
+        let community = ts::take_shared<Community>(&scenario);
+        let mut proposal = ts::take_shared<Proposal>(&scenario);
+
+        // First vote succeeds
+        governance::vote_on_proposal(&community, &mut proposal, 0, &clock, ts::ctx(&mut scenario));
+
+        // Second vote must abort with E_ALREADY_VOTED (1003)
+        governance::vote_on_proposal(&community, &mut proposal, 1, &clock, ts::ctx(&mut scenario));
+
+        ts::return_shared(community);
+        ts::return_shared(proposal);
+        clock::destroy_for_testing(clock);
+        ts::end(scenario);
     }
 
     // -------------------------------------------------------
-    // 6. Execute proposal
+    // 6. Execute proposal (treasury transfer)
     // -------------------------------------------------------
 
-    #[test(admin = @civicnode, voter1 = @0x123, voter2 = @0x456)]
-    /// With 2 members in a 51%-quorum community, both voting yes should
+    #[test]
+    /// With 3 members in a 51%-quorum community, 2 voting yes should
     /// allow execution and set status = 4 (executed).
-    fun test_execute_proposal(admin: &signer, voter1: &signer, voter2: &signer) {
-        let framework = account::create_account_for_test(@0x1);
-        setup_test_env(&framework);
+    fun test_execute_proposal() {
+        let mut scenario = ts::begin(ADMIN);
+        let mut clock = clock::create_for_testing(ts::ctx(&mut scenario));
+        clock::set_for_testing(&mut clock, 1000);
 
-        // Initialise AptosCoin so we can fund the admin (who will pay the proposal).
-        let (burn_cap, mint_cap) = aptos_coin::initialize_for_test(&framework);
+        governance::create_community(51, ts::ctx(&mut scenario));
+        ts::next_tx(&mut scenario, ADMIN);
 
-        governance::init_for_testing(admin);
+        let mut community = ts::take_shared<Community>(&scenario);
+        let admin_cap = ts::take_from_sender<AdminCap>(&scenario);
 
-        // Fund the admin account so execute_proposal can transfer coins.
-        let admin_addr = signer::address_of(admin);
-        coin::register<AptosCoin>(admin);
-        let coins = coin::mint<AptosCoin>(10000, &mint_cap);
-        coin::deposit(admin_addr, coins);
+        governance::register_member(&admin_cap, &mut community, VOTER1);
+        governance::register_member(&admin_cap, &mut community, VOTER2);
 
-        // Also set up the recipient so they can receive coins.
-        let recipient_addr = @0xBEEF;
-        let recipient_signer = account::create_account_for_test(recipient_addr);
-        coin::register<AptosCoin>(&recipient_signer);
+        // Fund the treasury with 10000 MIST
+        let treasury_coin = coin::mint_for_testing<SUI>(10000, ts::ctx(&mut scenario));
+        governance::deposit_to_treasury(&mut community, treasury_coin, ts::ctx(&mut scenario));
 
-        governance::create_community(admin, 51);
+        assert!(governance::get_treasury_balance(&community) == 10000, 500);
 
-        let voter1_addr = signer::address_of(voter1);
-        let voter2_addr = signer::address_of(voter2);
-        governance::register_member(admin, 0, voter1_addr);
-        governance::register_member(admin, 0, voter2_addr);
+        // Create proposal with deadline at 2000ms (short)
+        governance::create_proposal(
+            &mut community,
+            1000,
+            RECIPIENT,
+            2000,
+            &clock,
+            ts::ctx(&mut scenario),
+        );
 
-        // member_count is now 3 (admin + voter1 + voter2).
-        // quorum = 3 * 51 / 100 = 1 (integer division), so 2 votes suffice.
+        ts::return_to_sender(&scenario, admin_cap);
+        ts::return_shared(community);
 
-        // Create proposal with a very short deadline (1 second).
-        governance::create_proposal(admin, 0, 1000, recipient_addr, 1);
+        // Voter1 votes YES
+        ts::next_tx(&mut scenario, VOTER1);
+        {
+            let community = ts::take_shared<Community>(&scenario);
+            let mut proposal = ts::take_shared<Proposal>(&scenario);
+            governance::vote_on_proposal(&community, &mut proposal, 0, &clock, ts::ctx(&mut scenario));
+            ts::return_shared(community);
+            ts::return_shared(proposal);
+        };
 
-        // Both members vote YES while still within the deadline.
-        governance::vote_on_proposal(voter1, 0, 0);
-        governance::vote_on_proposal(voter2, 0, 0);
+        // Voter2 votes YES
+        ts::next_tx(&mut scenario, VOTER2);
+        {
+            let community = ts::take_shared<Community>(&scenario);
+            let mut proposal = ts::take_shared<Proposal>(&scenario);
+            governance::vote_on_proposal(&community, &mut proposal, 0, &clock, ts::ctx(&mut scenario));
+            ts::return_shared(community);
+            ts::return_shared(proposal);
+        };
 
-        // Fast-forward time past the deadline so execution is allowed.
-        timestamp::fast_forward_seconds(2);
+        // Fast-forward clock past deadline
+        clock::set_for_testing(&mut clock, 3000);
 
-        // Admin executes — coins flow from admin to recipient.
-        governance::execute_proposal(admin, 0);
+        // Admin executes the proposal
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let mut community = ts::take_shared<Community>(&scenario);
+            let mut proposal = ts::take_shared<Proposal>(&scenario);
+            let admin_cap = ts::take_from_sender<AdminCap>(&scenario);
 
-        assert!(governance::get_proposal_status(0) == 4, 600);
+            governance::execute_proposal(
+                &admin_cap,
+                &mut community,
+                &mut proposal,
+                &clock,
+                ts::ctx(&mut scenario),
+            );
 
-        // Clean up capabilities.
-        coin::destroy_burn_cap(burn_cap);
-        coin::destroy_mint_cap(mint_cap);
+            assert!(governance::get_proposal_status(&proposal) == 4, 600);
+            // Treasury should have 10000 - 1000 = 9000 remaining
+            assert!(governance::get_treasury_balance(&community) == 9000, 601);
+
+            ts::return_to_sender(&scenario, admin_cap);
+            ts::return_shared(community);
+            ts::return_shared(proposal);
+        };
+
+        clock::destroy_for_testing(clock);
+        ts::end(scenario);
     }
 }

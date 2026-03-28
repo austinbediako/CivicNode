@@ -5,11 +5,11 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
-export function formatAPT(amount: number): string {
+export function formatSUI(amount: number): string {
   return `${amount.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
-  })} APT`;
+  })} SUI`;
 }
 
 export function formatGHS(amount: number): string {
@@ -86,8 +86,8 @@ export function downloadCSV(
   URL.revokeObjectURL(url);
 }
 
-export function isValidAptosAddress(address: string): boolean {
-  return /^0x[a-fA-F0-9]{64}$/.test(address);
+export function isValidSuiAddress(address: string): boolean {
+  return /^0x[a-fA-F0-9]{1,64}$/.test(address);
 }
 
 export function getDeadlineUrgency(

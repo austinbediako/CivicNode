@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Clock, Coins } from "lucide-react";
 import type { Proposal } from "@/types";
 import { ProposalStatusChip } from "./ProposalStatusChip";
-import { formatDeadline, formatAPT } from "@/lib/utils";
+import { formatDeadline, formatSUI } from "@/lib/utils";
 
 interface ProposalCardProps {
   proposal: Proposal;

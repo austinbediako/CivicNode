@@ -1,32 +1,21 @@
 "use client";
 
-import { type ReactNode } from "react";
-import { WagmiProvider } from "wagmi";
+import { type ReactNode, useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
-import "@rainbow-me/rainbowkit/styles.css";
-import { config } from "@/wagmi";
-
-const queryClient = new QueryClient();
+import { WalletProvider } from "@/components/WalletProvider";
 
 interface ProvidersProps {
   children: ReactNode;
 }
 
 export function Providers({ children }: ProvidersProps) {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider
-          theme={darkTheme({
-            accentColor: "#15803d",
-            accentColorForeground: "white",
-            borderRadius: "medium",
-          })}
-        >
-          {children}
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <QueryClientProvider client={queryClient}>
+      <WalletProvider>
+        {children}
+      </WalletProvider>
+    </QueryClientProvider>
   );
 }

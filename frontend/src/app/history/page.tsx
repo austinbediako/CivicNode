@@ -123,7 +123,7 @@ function HistoryRow({ proposal }: { proposal: Proposal }) {
       <td className="py-3 px-4">
         {proposal.txHash ? (
           <a
-            href={`https://explorer.aptoslabs.com/txn/${proposal.txHash}?network=testnet`}
+            href={`https://suiscan.xyz/testnet/tx/${proposal.txHash}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-primary-400 hover:text-primary-300 transition-colors text-xs font-mono"

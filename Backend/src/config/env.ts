@@ -21,17 +21,17 @@ const envSchema = z.object({
     .string()
     .default('claude-sonnet-4-6'),
 
-  APTOS_NODE_URL: z
-    .string({ required_error: 'APTOS_NODE_URL is required — e.g. https://fullnode.testnet.aptoslabs.com/v1' })
-    .url('APTOS_NODE_URL must be a valid URL'),
+  SUI_RPC_URL: z
+    .string({ required_error: 'SUI_RPC_URL is required — e.g. https://fullnode.testnet.sui.io' })
+    .url('SUI_RPC_URL must be a valid URL'),
 
-  APTOS_MODULE_ADDRESS: z
-    .string({ required_error: 'APTOS_MODULE_ADDRESS is required — the on-chain module address' })
-    .min(1, 'APTOS_MODULE_ADDRESS cannot be empty'),
+  SUI_PACKAGE_ID: z
+    .string({ required_error: 'SUI_PACKAGE_ID is required — the on-chain module address' })
+    .min(1, 'SUI_PACKAGE_ID cannot be empty'),
 
-  APTOS_EXECUTOR_PRIVATE_KEY: z
-    .string({ required_error: 'APTOS_EXECUTOR_PRIVATE_KEY is required — hex-encoded private key for proposal execution' })
-    .min(1, 'APTOS_EXECUTOR_PRIVATE_KEY cannot be empty'),
+  SUI_EXECUTOR_PRIVATE_KEY: z
+    .string({ required_error: 'SUI_EXECUTOR_PRIVATE_KEY is required — hex-encoded or bech32 private key for proposal execution' })
+    .min(1, 'SUI_EXECUTOR_PRIVATE_KEY cannot be empty'),
 
   PORT: z
     .string()

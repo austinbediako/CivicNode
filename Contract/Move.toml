@@ -1,9 +1,10 @@
 [package]
 name = "civicnode"
 version = "0.1.0"
+edition = "2024.beta"
 
 [addresses]
-civicnode = "_"
+civicnode = "0x0"
 
 [dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "main" }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }

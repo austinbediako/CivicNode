@@ -1,369 +1,358 @@
-/// Core governance logic for CivicNode.
+/// CivicNode Governance Module (Sui Move)
 ///
-/// Communities are created by an admin who controls membership.
-/// Proposals request budget from the community treasury and are decided
-/// by on-chain votes subject to a configurable quorum threshold.
+/// Implements community creation, member management, proposal lifecycle,
+/// voting, and treasury management using Sui's object-centric model.
+/// All core structs are shared objects so any authorized party can interact.
+#[allow(unused_const)]
 module civicnode::governance {
-    use std::signer;
-    use std::vector;
-    use aptos_std::table::{Self, Table};
-    use aptos_framework::timestamp;
-    use aptos_framework::event;
-    use aptos_framework::coin;
-    use aptos_framework::aptos_coin::AptosCoin;
-    use civicnode::errors;
+    use sui::coin::{Self, Coin};
+    use sui::balance::{Self, Balance};
+    use sui::sui::SUI;
+    use sui::event;
+    use sui::table::{Self, Table};
+    use sui::clock::{Self, Clock};
 
     // -------------------------------------------------------
-    // Resources
+    // Error codes
+    // -------------------------------------------------------
+    const E_NOT_ADMIN: u64 = 1000;
+    const E_NOT_MEMBER: u64 = 1001;
+    const E_ALREADY_MEMBER: u64 = 1002;
+    const E_ALREADY_VOTED: u64 = 1003;
+    const E_PROPOSAL_NOT_LIVE: u64 = 1004;
+    const E_PROPOSAL_NOT_PASSED: u64 = 1005;
+    const E_VOTING_NOT_ENDED: u64 = 1006;
+    const E_QUORUM_NOT_MET: u64 = 1007;
+    const E_INVALID_QUORUM: u64 = 1008;
+    const E_INSUFFICIENT_TREASURY: u64 = 1009;
+    const E_ZERO_AMOUNT: u64 = 1010;
+
+    // -------------------------------------------------------
+    // Proposal status constants
+    // -------------------------------------------------------
+    const STATUS_DRAFT: u8 = 0;
+    const STATUS_LIVE: u8 = 1;
+    const STATUS_PASSED: u8 = 2;
+    const STATUS_FAILED: u8 = 3;
+    const STATUS_EXECUTED: u8 = 4;
+
+    // Vote choice constants
+    const VOTE_YES: u8 = 0;
+    const VOTE_NO: u8 = 1;
+    const VOTE_ABSTAIN: u8 = 2;
+
+    // -------------------------------------------------------
+    // Structs
     // -------------------------------------------------------
 
-    /// Global registry of all communities, stored at the module address.
-    struct CommunityRegistry has key {
-        communities: Table<u64, Community>,
-        next_community_id: u64,
+    /// AdminCap grants administrative powers over a specific community.
+    public struct AdminCap has key, store {
+        id: UID,
+        community_id: ID,
     }
 
-    /// On-chain representation of a single community.
-    struct Community has store, copy, drop {
-        id: u64,
+    /// Shared object representing a community with its treasury.
+    public struct Community has key {
+        id: UID,
         admin: address,
-        /// Percentage of members that must vote for quorum (e.g. 51 = 51%).
         quorum_threshold: u64,
         member_count: u64,
+        members: Table<address, bool>,
+        treasury: Balance<SUI>,
     }
 
-    /// Maps community_id -> list of member addresses.
-    struct MemberRegistry has key {
-        members: Table<u64, vector<address>>,
-    }
-
-    /// Global registry of all proposals.
-    struct ProposalRegistry has key {
-        proposals: Table<u64, Proposal>,
-        next_proposal_id: u64,
-    }
-
-    /// On-chain representation of a governance proposal.
-    struct Proposal has store, copy, drop {
-        id: u64,
-        community_id: u64,
+    /// Shared object representing a governance proposal.
+    public struct Proposal has key {
+        id: UID,
+        community_id: ID,
         budget_requested: u64,
         recipient: address,
-        /// Unix timestamp after which voting closes.
-        deadline: u64,
+        deadline_ms: u64,
+        status: u8,
         yes_votes: u64,
         no_votes: u64,
         abstain_votes: u64,
-        /// 0=draft, 1=live, 2=passed, 3=failed, 4=executed, 5=execution_failed
-        status: u8,
-    }
-
-    /// Tracks which addresses have already voted on each proposal
-    /// to prevent double-voting.
-    struct VoteRecord has key {
-        records: Table<u64, Table<address, bool>>,
+        voters: Table<address, bool>,
     }
 
     // -------------------------------------------------------
     // Events
     // -------------------------------------------------------
 
-    #[event]
-    struct VoteCast has drop, store {
-        proposal_id: u64,
+    public struct CommunityCreated has copy, drop {
+        community_id: ID,
+        admin: address,
+        quorum_threshold: u64,
+    }
+
+    public struct MemberRegistered has copy, drop {
+        community_id: ID,
+        member: address,
+    }
+
+    public struct ProposalCreated has copy, drop {
+        proposal_id: ID,
+        community_id: ID,
+        budget_requested: u64,
+        recipient: address,
+        deadline_ms: u64,
+    }
+
+    public struct VoteCast has copy, drop {
+        proposal_id: ID,
         voter: address,
         choice: u8,
-        timestamp: u64,
     }
 
-    #[event]
-    struct ProposalExecuted has drop, store {
-        proposal_id: u64,
+    public struct ProposalExecuted has copy, drop {
+        proposal_id: ID,
         recipient: address,
         amount: u64,
-        timestamp: u64,
     }
 
-    #[event]
-    struct ProposalCreated has drop, store {
-        proposal_id: u64,
-        community_id: u64,
-        budget_requested: u64,
-    }
-
-    // -------------------------------------------------------
-    // Initialization (called once on module publish)
-    // -------------------------------------------------------
-
-    /// Seeds every top-level resource so later functions can borrow them.
-    fun init_module(account: &signer) {
-        move_to(account, CommunityRegistry {
-            communities: table::new(),
-            next_community_id: 0,
-        });
-        move_to(account, MemberRegistry {
-            members: table::new(),
-        });
-        move_to(account, ProposalRegistry {
-            proposals: table::new(),
-            next_proposal_id: 0,
-        });
-        move_to(account, VoteRecord {
-            records: table::new(),
-        });
+    public struct TreasuryDeposit has copy, drop {
+        community_id: ID,
+        depositor: address,
+        amount: u64,
     }
 
     // -------------------------------------------------------
-    // Entry functions
+    // Community management
     // -------------------------------------------------------
 
-    /// Create a new community. The caller becomes admin and the first member.
-    public entry fun create_community(
-        admin: &signer,
+    /// Create a new community. The caller becomes the admin and first member.
+    /// Returns an AdminCap to the creator.
+    public fun create_community(
         quorum_threshold: u64,
-    ) acquires CommunityRegistry, MemberRegistry {
-        let admin_addr = signer::address_of(admin);
-        let registry = borrow_global_mut<CommunityRegistry>(@civicnode);
-        let id = registry.next_community_id;
+        ctx: &mut TxContext,
+    ) {
+        assert!(quorum_threshold > 0 && quorum_threshold <= 100, E_INVALID_QUORUM);
+
+        let admin_addr = ctx.sender();
+        let mut members = table::new<address, bool>(ctx);
+        table::add(&mut members, admin_addr, true);
 
         let community = Community {
-            id,
+            id: object::new(ctx),
             admin: admin_addr,
             quorum_threshold,
-            member_count: 1, // admin counts as the first member
+            member_count: 1,
+            members,
+            treasury: balance::zero<SUI>(),
         };
-        table::add(&mut registry.communities, id, community);
-        registry.next_community_id = id + 1;
 
-        // Register the admin as the first member of this community.
-        let member_reg = borrow_global_mut<MemberRegistry>(@civicnode);
-        let members = vector::empty<address>();
-        vector::push_back(&mut members, admin_addr);
-        table::add(&mut member_reg.members, id, members);
+        let community_id = object::id(&community);
+
+        let admin_cap = AdminCap {
+            id: object::new(ctx),
+            community_id,
+        };
+
+        event::emit(CommunityCreated {
+            community_id,
+            admin: admin_addr,
+            quorum_threshold,
+        });
+
+        transfer::transfer(admin_cap, admin_addr);
+        transfer::share_object(community);
     }
 
-    /// Add a new member to a community. Only the community admin may call this.
-    public entry fun register_member(
-        admin: &signer,
-        community_id: u64,
+    /// Register a new member in the community. Only admin can call.
+    public fun register_member(
+        admin_cap: &AdminCap,
+        community: &mut Community,
         member: address,
-    ) acquires CommunityRegistry, MemberRegistry {
-        let admin_addr = signer::address_of(admin);
-        let registry = borrow_global_mut<CommunityRegistry>(@civicnode);
+    ) {
+        assert!(admin_cap.community_id == object::id(community), E_NOT_ADMIN);
+        assert!(!table::contains(&community.members, member), E_ALREADY_MEMBER);
 
-        assert!(
-            table::contains(&registry.communities, community_id),
-            errors::e_community_not_found(),
-        );
-
-        let community = table::borrow_mut(&mut registry.communities, community_id);
-        // Only the community admin can add members.
-        assert!(community.admin == admin_addr, errors::e_not_admin());
-
+        table::add(&mut community.members, member, true);
         community.member_count = community.member_count + 1;
 
-        let member_reg = borrow_global_mut<MemberRegistry>(@civicnode);
-        let members = table::borrow_mut(&mut member_reg.members, community_id);
-        vector::push_back(members, member);
+        event::emit(MemberRegistered {
+            community_id: object::id(community),
+            member,
+        });
     }
 
-    /// Create a proposal within a community. Only the admin may do this.
-    /// `duration_seconds` is added to the current on-chain timestamp to
-    /// derive the voting deadline.
-    public entry fun create_proposal(
-        admin: &signer,
-        community_id: u64,
+    // -------------------------------------------------------
+    // Treasury
+    // -------------------------------------------------------
+
+    /// Deposit SUI into the community treasury.
+    public fun deposit_to_treasury(
+        community: &mut Community,
+        coin: Coin<SUI>,
+        ctx: &TxContext,
+    ) {
+        let amount = coin::value(&coin);
+        assert!(amount > 0, E_ZERO_AMOUNT);
+
+        let depositor = ctx.sender();
+        balance::join(&mut community.treasury, coin::into_balance(coin));
+
+        event::emit(TreasuryDeposit {
+            community_id: object::id(community),
+            depositor,
+            amount,
+        });
+    }
+
+    // -------------------------------------------------------
+    // Proposals
+    // -------------------------------------------------------
+
+    /// Create a proposal. Only members can create proposals.
+    /// `deadline_ms` is an absolute timestamp in milliseconds.
+    public fun create_proposal(
+        community: &mut Community,
         budget_requested: u64,
         recipient: address,
-        duration_seconds: u64,
-    ) acquires CommunityRegistry, ProposalRegistry {
-        let admin_addr = signer::address_of(admin);
-        let c_registry = borrow_global<CommunityRegistry>(@civicnode);
-
-        assert!(
-            table::contains(&c_registry.communities, community_id),
-            errors::e_community_not_found(),
-        );
-
-        let community = table::borrow(&c_registry.communities, community_id);
-        assert!(community.admin == admin_addr, errors::e_not_admin());
-
-        let now = timestamp::now_seconds();
-        let p_registry = borrow_global_mut<ProposalRegistry>(@civicnode);
-        let proposal_id = p_registry.next_proposal_id;
+        deadline_ms: u64,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        let sender = ctx.sender();
+        assert!(table::contains(&community.members, sender), E_NOT_MEMBER);
+        assert!(deadline_ms > clock::timestamp_ms(clock), E_VOTING_NOT_ENDED);
 
         let proposal = Proposal {
-            id: proposal_id,
-            community_id,
+            id: object::new(ctx),
+            community_id: object::id(community),
             budget_requested,
             recipient,
-            deadline: now + duration_seconds,
+            deadline_ms,
+            status: STATUS_LIVE,
             yes_votes: 0,
             no_votes: 0,
             abstain_votes: 0,
-            status: 1, // live
+            voters: table::new<address, bool>(ctx),
         };
-
-        table::add(&mut p_registry.proposals, proposal_id, proposal);
-        p_registry.next_proposal_id = proposal_id + 1;
 
         event::emit(ProposalCreated {
-            proposal_id,
-            community_id,
+            proposal_id: object::id(&proposal),
+            community_id: object::id(community),
             budget_requested,
+            recipient,
+            deadline_ms,
         });
+
+        transfer::share_object(proposal);
     }
 
-    /// Cast a vote on a live proposal. Choice encoding: 0 = yes, 1 = no, 2 = abstain.
-    public entry fun vote_on_proposal(
-        voter: &signer,
-        proposal_id: u64,
+    // -------------------------------------------------------
+    // Voting
+    // -------------------------------------------------------
+
+    /// Cast a vote on a live proposal. `choice`: 0=YES, 1=NO, 2=ABSTAIN.
+    public fun vote_on_proposal(
+        community: &Community,
+        proposal: &mut Proposal,
         choice: u8,
-    ) acquires ProposalRegistry, MemberRegistry, VoteRecord {
-        let voter_addr = signer::address_of(voter);
+        clock: &Clock,
+        ctx: &TxContext,
+    ) {
+        let voter = ctx.sender();
 
-        // --- validation ---
-        assert!(choice <= 2, errors::e_invalid_vote_choice());
+        assert!(table::contains(&community.members, voter), E_NOT_MEMBER);
+        assert!(proposal.status == STATUS_LIVE, E_PROPOSAL_NOT_LIVE);
+        assert!(clock::timestamp_ms(clock) <= proposal.deadline_ms, E_PROPOSAL_NOT_LIVE);
+        assert!(!table::contains(&proposal.voters, voter), E_ALREADY_VOTED);
 
-        let p_registry = borrow_global_mut<ProposalRegistry>(@civicnode);
-        assert!(
-            table::contains(&p_registry.proposals, proposal_id),
-            errors::e_proposal_not_found(),
-        );
+        table::add(&mut proposal.voters, voter, true);
 
-        let proposal = table::borrow_mut(&mut p_registry.proposals, proposal_id);
-        assert!(proposal.status == 1, errors::e_proposal_not_live());
-
-        let now = timestamp::now_seconds();
-        assert!(now <= proposal.deadline, errors::e_proposal_closed());
-
-        // Verify the voter belongs to the proposal's community.
-        let member_reg = borrow_global<MemberRegistry>(@civicnode);
-        let members = table::borrow(&member_reg.members, proposal.community_id);
-        assert!(vector::contains(members, &voter_addr), errors::e_not_member());
-
-        // Prevent double-voting.
-        let vote_rec = borrow_global_mut<VoteRecord>(@civicnode);
-        if (!table::contains(&vote_rec.records, proposal_id)) {
-            table::add(&mut vote_rec.records, proposal_id, table::new<address, bool>());
-        };
-        let voters = table::borrow_mut(&mut vote_rec.records, proposal_id);
-        assert!(!table::contains(voters, voter_addr), errors::e_already_voted());
-        table::add(voters, voter_addr, true);
-
-        // Tally the vote.
-        if (choice == 0) {
+        if (choice == VOTE_YES) {
             proposal.yes_votes = proposal.yes_votes + 1;
-        } else if (choice == 1) {
+        } else if (choice == VOTE_NO) {
             proposal.no_votes = proposal.no_votes + 1;
         } else {
             proposal.abstain_votes = proposal.abstain_votes + 1;
         };
 
         event::emit(VoteCast {
-            proposal_id,
-            voter: voter_addr,
+            proposal_id: object::id(proposal),
+            voter,
             choice,
-            timestamp: now,
         });
     }
 
-    /// Finalize a proposal after its deadline. If quorum is met and
-    /// yes > no, the requested budget is transferred from the executor
-    /// to the recipient and status becomes "executed". Otherwise
-    /// status becomes "failed".
-    public entry fun execute_proposal(
-        executor: &signer,
-        proposal_id: u64,
-    ) acquires ProposalRegistry, CommunityRegistry {
-        let p_registry = borrow_global_mut<ProposalRegistry>(@civicnode);
-        assert!(
-            table::contains(&p_registry.proposals, proposal_id),
-            errors::e_proposal_not_found(),
-        );
+    // -------------------------------------------------------
+    // Execution
+    // -------------------------------------------------------
 
-        let proposal = table::borrow_mut(&mut p_registry.proposals, proposal_id);
-        assert!(proposal.status == 1, errors::e_proposal_not_live());
+    /// Execute a passed proposal. Transfers funds from the community treasury
+    /// to the proposal recipient. Can only be called after the deadline and
+    /// when quorum is met with more yes than no votes.
+    public fun execute_proposal(
+        admin_cap: &AdminCap,
+        community: &mut Community,
+        proposal: &mut Proposal,
+        clock: &Clock,
+        ctx: &mut TxContext,
+    ) {
+        assert!(admin_cap.community_id == object::id(community), E_NOT_ADMIN);
+        assert!(proposal.community_id == object::id(community), E_NOT_ADMIN);
+        assert!(proposal.status == STATUS_LIVE, E_PROPOSAL_NOT_LIVE);
+        assert!(clock::timestamp_ms(clock) > proposal.deadline_ms, E_VOTING_NOT_ENDED);
 
-        // Must wait until after deadline to execute.
-        let now = timestamp::now_seconds();
-        assert!(now > proposal.deadline, errors::e_proposal_closed());
-
-        // Guard against re-execution (belt-and-suspenders with status check above).
-        assert!(
-            proposal.status != 4 && proposal.status != 5,
-            errors::e_already_executed(),
-        );
-
-        // Check quorum: total votes must be >= member_count * quorum_threshold / 100
-        let c_registry = borrow_global<CommunityRegistry>(@civicnode);
-        let community = table::borrow(&c_registry.communities, proposal.community_id);
         let total_votes = proposal.yes_votes + proposal.no_votes + proposal.abstain_votes;
-        let required = community.member_count * community.quorum_threshold / 100;
-        assert!(total_votes >= required, errors::e_quorum_not_met());
+        let quorum_votes_needed = (community.member_count * community.quorum_threshold) / 100;
 
-        if (proposal.yes_votes > proposal.no_votes) {
-            // Transfer coins from the executor to the recipient.
-            let coins = coin::withdraw<AptosCoin>(executor, proposal.budget_requested);
-            coin::deposit<AptosCoin>(proposal.recipient, coins);
-            proposal.status = 4; // executed
-
-            event::emit(ProposalExecuted {
-                proposal_id,
-                recipient: proposal.recipient,
-                amount: proposal.budget_requested,
-                timestamp: now,
-            });
-        } else {
-            proposal.status = 3; // failed
+        if (total_votes < quorum_votes_needed || proposal.no_votes >= proposal.yes_votes) {
+            proposal.status = STATUS_FAILED;
+            return
         };
+
+        // Quorum met and more yes than no
+        assert!(balance::value(&community.treasury) >= proposal.budget_requested, E_INSUFFICIENT_TREASURY);
+
+        let payment = coin::take(&mut community.treasury, proposal.budget_requested, ctx);
+        transfer::public_transfer(payment, proposal.recipient);
+
+        proposal.status = STATUS_EXECUTED;
+
+        event::emit(ProposalExecuted {
+            proposal_id: object::id(proposal),
+            recipient: proposal.recipient,
+            amount: proposal.budget_requested,
+        });
     }
 
     // -------------------------------------------------------
-    // View / helper functions used by tests
+    // View helpers (for tests and off-chain queries)
     // -------------------------------------------------------
 
-    #[view]
-    /// Return the current member count of a community.
-    public fun get_member_count(community_id: u64): u64 acquires CommunityRegistry {
-        let registry = borrow_global<CommunityRegistry>(@civicnode);
-        let community = table::borrow(&registry.communities, community_id);
+    public fun is_member(community: &Community, addr: address): bool {
+        table::contains(&community.members, addr)
+    }
+
+    public fun get_member_count(community: &Community): u64 {
         community.member_count
     }
 
-    #[view]
-    /// Return the status byte for a proposal.
-    public fun get_proposal_status(proposal_id: u64): u8 acquires ProposalRegistry {
-        let registry = borrow_global<ProposalRegistry>(@civicnode);
-        let proposal = table::borrow(&registry.proposals, proposal_id);
-        proposal.status
-    }
-
-    #[view]
-    /// Return the yes-vote count for a proposal.
-    public fun get_yes_votes(proposal_id: u64): u64 acquires ProposalRegistry {
-        let registry = borrow_global<ProposalRegistry>(@civicnode);
-        let proposal = table::borrow(&registry.proposals, proposal_id);
-        proposal.yes_votes
-    }
-
-    #[view]
-    /// Return the quorum threshold for a community.
-    public fun get_quorum_threshold(community_id: u64): u64 acquires CommunityRegistry {
-        let registry = borrow_global<CommunityRegistry>(@civicnode);
-        let community = table::borrow(&registry.communities, community_id);
+    public fun get_quorum_threshold(community: &Community): u64 {
         community.quorum_threshold
     }
 
-    #[view]
-    /// Check whether an address is a member of a community.
-    public fun is_member(community_id: u64, addr: address): bool acquires MemberRegistry {
-        let member_reg = borrow_global<MemberRegistry>(@civicnode);
-        if (!table::contains(&member_reg.members, community_id)) {
-            return false
-        };
-        let members = table::borrow(&member_reg.members, community_id);
-        vector::contains(members, &addr)
+    public fun get_proposal_status(proposal: &Proposal): u8 {
+        proposal.status
+    }
+
+    public fun get_yes_votes(proposal: &Proposal): u64 {
+        proposal.yes_votes
+    }
+
+    public fun get_no_votes(proposal: &Proposal): u64 {
+        proposal.no_votes
+    }
+
+    public fun get_treasury_balance(community: &Community): u64 {
+        balance::value(&community.treasury)
+    }
+
+    public fun get_proposal_community_id(proposal: &Proposal): ID {
+        proposal.community_id
     }
 
     // -------------------------------------------------------
@@ -371,8 +360,8 @@ module civicnode::governance {
     // -------------------------------------------------------
 
     #[test_only]
-    /// Expose init_module so tests can bootstrap registries.
-    public fun init_for_testing(account: &signer) {
-        init_module(account);
+    public fun init_for_testing(_ctx: &mut TxContext) {
+        // No-op in Sui — no global storage to initialize.
+        // Kept for API compatibility with tests.
     }
 }

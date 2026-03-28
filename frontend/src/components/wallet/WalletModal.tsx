@@ -1,90 +1,72 @@
 "use client";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useWallet } from "@/hooks/useWallet";
+import { useState } from "react";
 
 /**
- * Wallet connection UI powered by RainbowKit.
- * RainbowKit handles the modal internally — this component
- * exposes the ConnectButton with CivicNode styling.
+ * Wallet connection UI.
+ * Shows Enoki OAuth options when disconnected.
+ * Shows address and allows disconnect when connected.
  */
 export function WalletModal() {
+  const { connected, address, connect, disconnect, wallets } = useWallet();
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (connected && address) {
+    return (
+      <button
+        onClick={() => {
+          disconnect();
+          setIsOpen(false);
+        }}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-dark-800 border border-dark-700 focus:outline-none hover:border-dark-600 transition-colors text-sm"
+        title="Click to disconnect"
+      >
+        <div className="w-2 h-2 bg-primary-500 rounded-full" />
+        <span className="font-mono text-dark-200">
+          {address.slice(0, 6)}...{address.slice(-4)}
+        </span>
+      </button>
+    );
+  }
+
   return (
-    <ConnectButton.Custom>
-      {({
-        account,
-        chain,
-        openAccountModal,
-        openChainModal,
-        openConnectModal,
-        mounted,
-      }) => {
-        const ready = mounted;
-        const connected = ready && account && chain;
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 text-sm px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-500 transition-colors text-white font-medium focus:outline-none"
+      >
+        Connect
+      </button>
 
-        return (
-          <div
-            {...(!ready && {
-              "aria-hidden": true,
-              style: {
-                opacity: 0,
-                pointerEvents: "none" as const,
-                userSelect: "none" as const,
-              },
-            })}
-          >
-            {(() => {
-              if (!connected) {
-                return (
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 bg-dark-800 border border-dark-700 rounded-lg shadow-xl overflow-hidden z-50">
+          <div className="p-2 flex flex-col gap-1">
+            {wallets.filter((w) => w.name.includes("Enoki")).length > 0 ? (
+              wallets
+                .filter((w) => w.name.includes("Enoki"))
+                .map((wallet) => (
                   <button
-                    onClick={openConnectModal}
-                    className="btn-primary flex items-center gap-2 text-sm"
+                    key={wallet.name}
+                    onClick={async () => {
+                      try {
+                        await connect(wallet.name);
+                        setIsOpen(false);
+                      } catch (err) {
+                        console.error("Failed to connect", err);
+                      }
+                    }}
+                    className="text-left px-3 py-2 text-sm text-dark-200 hover:bg-dark-700 hover:text-white rounded-md transition-colors focus:outline-none"
                   >
-                    Connect Wallet
+                    {wallet.name.replace('Enoki: ', 'Login with ')}
                   </button>
-                );
-              }
-
-              if (chain.unsupported) {
-                return (
-                  <button
-                    onClick={openChainModal}
-                    className="px-3 py-1.5 rounded-lg bg-accent-600/20 border border-accent-600 text-accent-400 text-sm font-medium"
-                  >
-                    Wrong network
-                  </button>
-                );
-              }
-
-              return (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={openChainModal}
-                    className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-dark-800 border border-dark-700 hover:border-dark-600 transition-colors text-sm"
-                  >
-                    {chain.hasIcon && chain.iconUrl && (
-                      <img
-                        alt={chain.name ?? "Chain icon"}
-                        src={chain.iconUrl}
-                        className="w-4 h-4 rounded-full"
-                      />
-                    )}
-                  </button>
-
-                  <button
-                    onClick={openAccountModal}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-dark-800 border border-dark-700 hover:border-dark-600 transition-colors text-sm"
-                  >
-                    <div className="w-2 h-2 bg-primary-500 rounded-full" />
-                    <span className="font-mono text-dark-200">
-                      {account.displayName}
-                    </span>
-                  </button>
-                </div>
-              );
-            })()}
+                ))
+            ) : (
+              <div className="px-3 py-2 text-sm text-dark-400">Loading wallets...</div>
+            )}
           </div>
-        );
-      }}
-    </ConnectButton.Custom>
+        </div>
+      )}
+    </div>
   );
 }

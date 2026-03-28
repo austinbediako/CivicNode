@@ -1,0 +1,502 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --gold:#F5C842;--red:#CE1126;--green:#006B3F;
+  --electric:#7C3AED;--teal:#0D9488;--blue:#1D4ED8;
+  --deep:#0F172A;--slate:#1E293B;--dark:#0D1117;
+  --light:#F8FAFC;--muted:#94A3B8;
+  --amber:#F59E0B;--cyan:#06B6D4;
+}
+body{background:transparent;font-family:'Space Grotesk',sans-serif;overflow-x:hidden}
+
+.wrap{
+  background:linear-gradient(135deg,#050C1A 0%,#0A1628 40%,#0D1635 70%,#060E1C 100%);
+  min-height:900px;padding:0 0 32px;position:relative;overflow:hidden;
+  border-radius:16px;
+}
+
+/* Circuit board background */
+.circuit-bg{position:absolute;inset:0;opacity:.06;pointer-events:none;overflow:hidden}
+
+/* Kente strip */
+.kente-strip{
+  position:absolute;top:0;left:0;right:0;height:6px;
+  background:repeating-linear-gradient(90deg,
+    var(--gold) 0 20px,var(--red) 20px 40px,
+    var(--green) 40px 60px,var(--deep) 60px 80px,
+    var(--gold) 80px 100px,var(--electric) 100px 120px);
+}
+
+/* Top header */
+.header{
+  position:relative;text-align:center;padding:28px 16px 20px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.logo-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px}
+.logo-node{
+  width:36px;height:36px;background:linear-gradient(135deg,var(--electric),var(--cyan));
+  border-radius:8px;display:grid;place-items:center;
+  box-shadow:0 0 20px rgba(124,58,237,.5);
+}
+.logo-node svg{width:18px;height:18px}
+.main-title{
+  font-size:clamp(14px,2.5vw,22px);font-weight:700;
+  background:linear-gradient(90deg,var(--gold),#fff,var(--cyan));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:.08em;text-transform:uppercase;
+}
+.sub-title{
+  font-size:11px;color:var(--muted);letter-spacing:.2em;
+  text-transform:uppercase;margin-top:4px;
+}
+.tagline{
+  font-size:12px;color:rgba(255,255,255,.4);margin-top:6px;
+  font-style:italic;
+}
+
+/* Flow section */
+.flow-section{
+  display:flex;align-items:stretch;gap:0;
+  padding:0 12px;margin-top:20px;
+  overflow-x:auto;
+}
+
+/* Connector arrows between steps */
+.flow-arrow{
+  display:flex;align-items:center;justify-content:center;
+  min-width:28px;flex-shrink:0;padding-top:32px;
+}
+.flow-arrow svg{opacity:.5}
+
+/* Step card */
+.step{
+  flex:1;min-width:140px;max-width:200px;flex-shrink:0;
+  display:flex;flex-direction:column;gap:8px;
+}
+.step-header{
+  display:flex;align-items:center;gap:6px;margin-bottom:4px;
+}
+.step-num{
+  width:22px;height:22px;border-radius:50%;
+  display:grid;place-items:center;font-size:10px;font-weight:700;
+  flex-shrink:0;
+}
+.step-label{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+.step-card{
+  border-radius:12px;border:1px solid rgba(255,255,255,.08);
+  padding:12px 10px;flex:1;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;gap:8px;
+}
+
+/* Step 1 - Input */
+.s1 .step-num{background:rgba(239,68,68,.2);color:#f87171}
+.s1 .step-card{background:rgba(239,68,68,.04);border-color:rgba(239,68,68,.2)}
+.s1-chat{
+  background:rgba(239,68,68,.07);border-radius:8px;padding:6px 8px;
+  border-left:2px solid rgba(239,68,68,.4);
+}
+
+/* Step 2 - AI */
+.s2 .step-num{background:rgba(124,58,237,.25);color:#a78bfa}
+.s2 .step-card{background:rgba(124,58,237,.05);border-color:rgba(124,58,237,.25)}
+.ai-brain{
+  width:48px;height:48px;margin:4px auto;
+  background:linear-gradient(135deg,rgba(124,58,237,.3),rgba(6,182,212,.2));
+  border-radius:50%;border:1px solid rgba(124,58,237,.4);
+  display:grid;place-items:center;
+  box-shadow:0 0 24px rgba(124,58,237,.3);
+  animation:pulse 3s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{box-shadow:0 0 16px rgba(124,58,237,.3)}50%{box-shadow:0 0 32px rgba(124,58,237,.6)}}
+.ai-output{
+  background:rgba(13,148,136,.1);border:1px solid rgba(13,148,136,.25);
+  border-radius:6px;padding:5px 7px;
+}
+
+/* Step 3 - Review */
+.s3 .step-num{background:rgba(245,200,66,.2);color:var(--gold)}
+.s3 .step-card{background:rgba(245,200,66,.03);border-color:rgba(245,200,66,.2)}
+.reviewer{
+  width:38px;height:38px;border-radius:50%;margin:0 auto;
+  background:linear-gradient(135deg,rgba(245,200,66,.3),rgba(245,200,66,.1));
+  border:1px solid rgba(245,200,66,.4);display:grid;place-items:center;font-size:20px;
+}
+.check-badge{
+  background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);
+  color:#4ade80;font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;
+  text-align:center;letter-spacing:.05em;
+}
+
+/* Step 4 - Voting */
+.s4 .step-num{background:rgba(29,78,216,.25);color:#93c5fd}
+.s4 .step-card{background:rgba(29,78,216,.05);border-color:rgba(29,78,216,.25)}
+.vote-row{display:flex;gap:4px}
+.vote-btn{
+  flex:1;border-radius:6px;padding:5px 4px;text-align:center;font-size:10px;font-weight:600;
+}
+.vote-yes{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80}
+.vote-no{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:#f87171}
+.voter{
+  display:flex;align-items:center;gap:4px;font-size:9px;color:var(--muted);margin-bottom:2px;
+}
+.voter-dot{width:6px;height:6px;border-radius:50%}
+
+/* Step 5 - Execution */
+.s5 .step-num{background:rgba(245,200,66,.2);color:var(--gold)}
+.s5 .step-card{background:rgba(0,107,63,.05);border-color:rgba(0,107,63,.3)}
+.vault{
+  width:44px;height:44px;margin:4px auto;
+  background:linear-gradient(135deg,rgba(245,200,66,.2),rgba(0,107,63,.2));
+  border-radius:10px;border:1px solid rgba(245,200,66,.35);
+  display:grid;place-items:center;font-size:24px;
+  animation:vault-glow 2s ease-in-out infinite;
+}
+@keyframes vault-glow{0%,100%{border-color:rgba(245,200,66,.3)}50%{border-color:rgba(245,200,66,.7);box-shadow:0 0 16px rgba(245,200,66,.25)}}
+.project-badge{
+  background:rgba(0,107,63,.2);border:1px solid rgba(0,107,63,.4);
+  border-radius:5px;padding:3px 6px;font-size:9px;color:#4ade80;
+  display:flex;align-items:center;gap:3px;
+}
+
+/* Common card text */
+.card-mini-title{font-size:10px;font-weight:600;color:rgba(255,255,255,.8);letter-spacing:.04em}
+.card-micro{font-size:9px;color:var(--muted);line-height:1.4}
+.divider{height:1px;background:rgba(255,255,255,.06);margin:4px 0}
+
+/* Tech stack section */
+.stack-section{
+  margin:20px 12px 0;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;overflow:hidden;
+}
+.stack-header{
+  background:rgba(255,255,255,.03);
+  padding:8px 14px;font-size:9px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.06);
+}
+.stack-layer{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);
+}
+.stack-layer:last-child{border-bottom:none}
+.layer-label{
+  font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;
+  min-width:80px;
+}
+.tech-chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{
+  padding:3px 8px;border-radius:20px;font-size:9px;font-weight:600;
+  letter-spacing:.04em;white-space:nowrap;
+}
+.chip-ui{background:rgba(29,78,216,.2);border:1px solid rgba(29,78,216,.35);color:#93c5fd}
+.chip-mid{background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.35);color:#c4b5fd}
+.chip-trust{background:rgba(245,200,66,.12);border:1px solid rgba(245,200,66,.3);color:var(--gold)}
+.chip-ai{background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.3);color:#67e8f9}
+.layer-bar{
+  flex:1;height:3px;border-radius:2px;
+}
+.bar-ui{background:linear-gradient(90deg,rgba(29,78,216,.6),rgba(29,78,216,.1))}
+.bar-mid{background:linear-gradient(90deg,rgba(124,58,237,.6),rgba(124,58,237,.1))}
+.bar-trust{background:linear-gradient(90deg,rgba(245,200,66,.5),rgba(245,200,66,.1))}
+
+/* The "loving grace" pitch footer */
+.footer-note{
+  margin:16px 12px 0;padding:10px 14px;
+  background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.15);
+  border-radius:10px;display:flex;gap:8px;align-items:flex-start;
+}
+.footer-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.footer-text{font-size:9.5px;color:rgba(255,255,255,.45);line-height:1.6}
+.footer-text strong{color:rgba(255,255,255,.7)}
+
+/* Accra skyline faint outline */
+.skyline{
+  position:absolute;bottom:0;left:0;right:0;
+  height:80px;opacity:.035;pointer-events:none;
+}
+
+/* Animated data flow line */
+.data-flow{position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;overflow:hidden}
+
+/* Decorative circuit paths */
+.circ-path{
+  position:absolute;border:1px solid rgba(124,58,237,.15);
+  border-radius:0;pointer-events:none;
+}
+
+/* Kente diamond motifs */
+.kente-accent{
+  position:absolute;width:12px;height:12px;
+  transform:rotate(45deg);opacity:.2;
+}
+</style>
+
+<div class="wrap">
+  <!-- Kente top strip -->
+  <div class="kente-strip"></div>
+
+  <!-- Circuit board decorative SVG background -->
+  <svg class="circuit-bg" viewBox="0 0 800 900" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="#7C3AED" stroke-width="0.5" fill="none" opacity="0.8">
+      <path d="M0 80h120v40h80v-40h200v60h-60v30h160v-30h-20v-60h220"/>
+      <path d="M0 180h60v80h120v-40h80v40h160v-80h80v80h300"/>
+      <path d="M50 0v280M150 0v120M300 0v160M480 0v200M620 0v100M720 0v280"/>
+      <path d="M0 320h40v40h720v-40h40"/>
+      <path d="M0 420h180v-60h120v60h100v-40h200v40h200"/>
+      <circle cx="50" cy="80" r="3" fill="#7C3AED"/>
+      <circle cx="170" cy="120" r="3" fill="#7C3AED"/>
+      <circle cx="300" cy="160" r="3" fill="#0D9488"/>
+      <circle cx="480" cy="200" r="3" fill="#7C3AED"/>
+      <circle cx="600" cy="80" r="3" fill="#0D9488"/>
+      <circle cx="720" cy="280" r="3" fill="#7C3AED"/>
+      <circle cx="150" cy="320" r="3" fill="#0D9488"/>
+      <circle cx="420" cy="320" r="3" fill="#7C3AED"/>
+    </g>
+    <!-- Kente diamond patterns faint -->
+    <g transform="translate(650,500)" opacity="0.6">
+      <polygon points="0,-20 20,0 0,20 -20,0" fill="none" stroke="#F5C842" stroke-width="0.8"/>
+      <polygon points="0,-10 10,0 0,10 -10,0" fill="#F5C842"/>
+    </g>
+    <g transform="translate(100,600)" opacity="0.5">
+      <polygon points="0,-16 16,0 0,16 -16,0" fill="none" stroke="#006B3F" stroke-width="0.8"/>
+      <polygon points="0,-8 8,0 0,8 -8,0" fill="#006B3F"/>
+    </g>
+    <g transform="translate(400,700)" opacity="0.5">
+      <polygon points="0,-16 16,0 0,16 -16,0" fill="none" stroke="#CE1126" stroke-width="0.8"/>
+    </g>
+  </svg>
+
+  <!-- Skyline SVG -->
+  <svg class="skyline" viewBox="0 0 800 80" preserveAspectRatio="none">
+    <g fill="white">
+      <rect x="0" y="50" width="40" height="30"/>
+      <rect x="20" y="35" width="16" height="45"/>
+      <rect x="50" y="55" width="30" height="25"/>
+      <rect x="90" y="40" width="25" height="40"/>
+      <rect x="100" y="30" width="10" height="50"/>
+      <rect x="125" y="50" width="35" height="30"/>
+      <rect x="170" y="30" width="30" height="50"/>
+      <rect x="185" y="20" width="10" height="60"/>
+      <rect x="210" y="45" width="40" height="35"/>
+      <rect x="260" y="38" width="28" height="42"/>
+      <rect x="272" y="28" width="8" height="52"/>
+      <rect x="300" y="55" width="45" height="25"/>
+      <rect x="355" y="32" width="32" height="48"/>
+      <rect x="370" y="22" width="8" height="58"/>
+      <rect x="400" y="50" width="38" height="30"/>
+      <rect x="450" y="35" width="25" height="45"/>
+      <rect x="485" y="48" width="40" height="32"/>
+      <rect x="535" y="28" width="35" height="52"/>
+      <rect x="548" y="18" width="10" height="62"/>
+      <rect x="580" y="52" width="30" height="28"/>
+      <rect x="620" y="40" width="28" height="40"/>
+      <rect x="658" y="55" width="40" height="25"/>
+      <rect x="710" y="38" width="25" height="42"/>
+      <rect x="745" y="50" width="55" height="30"/>
+    </g>
+  </svg>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo-row">
+      <div class="logo-node">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M16.9 16.9l2.1 2.1M16.9 7.1l-2.1 2.1M7.1 16.9l-2.1 2.1"/>
+        </svg>
+      </div>
+      <div class="main-title">CIVICNODE: AI-POWERED COMMUNITY GOVERNANCE ECOSYSTEM</div>
+    </div>
+    <div class="sub-title">Decentralized Consensus &amp; Treasury Management · Ghana</div>
+    <div class="tagline">The AI acts as a hyper-efficient secretary — humans deliberate, connect, and decide.</div>
+  </div>
+
+  <!-- FLOW PIPELINE -->
+  <div class="flow-section">
+
+    <!-- STEP 1: INPUT -->
+    <div class="step s1">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-label">Input</div>
+      </div>
+      <div class="step-card">
+        <div class="card-mini-title">Community Chats</div>
+        <div class="divider"></div>
+        <div class="s1-chat">
+          <div class="card-micro" style="color:rgba(248,113,113,.8)">💬 WhatsApp group</div>
+          <div class="card-micro" style="margin-top:4px;color:rgba(255,255,255,.4)">"ok so we need to fix the water pump but who decides the budget??"</div>
+        </div>
+        <div class="s1-chat" style="margin-top:4px">
+          <div class="card-micro" style="color:rgba(248,113,113,.8)">💬 Discord debate</div>
+          <div class="card-micro" style="margin-top:4px;color:rgba(255,255,255,.4)">"This has been going on for 3 weeks nobody agrees 😤"</div>
+        </div>
+        <div style="margin-top:4px;padding:4px 6px;background:rgba(239,68,68,.06);border-radius:5px">
+          <div class="card-micro" style="color:rgba(248,113,113,.6)">📄 Unstructured export uploaded to dashboard</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARROW 1→2 -->
+    <div class="flow-arrow">
+      <svg width="20" height="20" viewBox="0 0 20 20"><path d="M4 10h12M12 6l4 4-4 4" stroke="#7C3AED" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <!-- STEP 2: AI SYNTHESIS -->
+    <div class="step s2">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-label">AI Synthesis</div>
+      </div>
+      <div class="step-card">
+        <div class="card-mini-title">Anthropic Claude</div>
+        <div class="divider"></div>
+        <div class="ai-brain">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.5">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+            <path d="M8 12h8M12 8v8"/>
+            <circle cx="12" cy="12" r="2" fill="#a78bfa"/>
+          </svg>
+        </div>
+        <div class="card-micro" style="text-align:center;color:rgba(167,139,250,.6)">Reads debate · filters noise · identifies consensus</div>
+        <div class="ai-output">
+          <div class="card-micro" style="color:#5eead4">📋 Draft: "Community Water Pump Repair"</div>
+          <div class="card-micro" style="color:rgba(94,234,212,.5);margin-top:2px">Budget allocation · action items · rationale</div>
+        </div>
+        <div class="ai-output" style="margin-top:4px">
+          <div class="card-micro" style="color:#5eead4">📋 Draft: "Q3 Budget Allocation"</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARROW 2→3 -->
+    <div class="flow-arrow">
+      <svg width="20" height="20" viewBox="0 0 20 20"><path d="M4 10h12M12 6l4 4-4 4" stroke="#F5C842" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <!-- STEP 3: HUMAN REVIEW -->
+    <div class="step s3">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div class="step-label">Human Review</div>
+      </div>
+      <div class="step-card">
+        <div class="card-mini-title">Community Admin</div>
+        <div class="divider"></div>
+        <div class="reviewer">👩🏾‍💼</div>
+        <div class="card-micro" style="text-align:center;margin:4px 0;color:rgba(255,255,255,.4)">Ghanaian community leader reviews cultural &amp; contextual accuracy</div>
+        <div class="check-badge">✓ Verified &amp; Approved</div>
+        <div style="margin-top:6px;padding:4px 6px;background:rgba(245,200,66,.06);border:1px solid rgba(245,200,66,.15);border-radius:5px">
+          <div class="card-micro" style="color:rgba(245,200,66,.7)">🔴 Flagged: Edit vendor name</div>
+          <div class="card-micro" style="color:rgba(245,200,66,.5);margin-top:2px">Human judgment applied</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARROW 3→4 -->
+    <div class="flow-arrow">
+      <svg width="20" height="20" viewBox="0 0 20 20"><path d="M4 10h12M12 6l4 4-4 4" stroke="#3b82f6" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <!-- STEP 4: ON-CHAIN VOTING -->
+    <div class="step s4">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div class="step-label">On-Chain Vote</div>
+      </div>
+      <div class="step-card">
+        <div class="card-mini-title">Blockchain Voting</div>
+        <div class="divider"></div>
+        <div style="font-size:9px;color:rgba(147,197,253,.6);margin-bottom:6px">Community members connect wallet · read AI summary · vote</div>
+        <div class="voter"><span class="voter-dot" style="background:#f59e0b"></span><span>Maame Akosua — trader</span></div>
+        <div class="voter"><span class="voter-dot" style="background:#34d399"></span><span>Kweku Asante — student</span></div>
+        <div class="voter"><span class="voter-dot" style="background:#60a5fa"></span><span>Nana Kofi — elder</span></div>
+        <div class="vote-row" style="margin-top:6px">
+          <div class="vote-btn vote-yes">✓ YES <br><span style="font-size:8px;font-weight:400">247 votes</span></div>
+          <div class="vote-btn vote-no">✗ NO<br><span style="font-size:8px;font-weight:400">31 votes</span></div>
+        </div>
+        <div style="margin-top:5px;height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden">
+          <div style="width:88%;height:100%;background:linear-gradient(90deg,#34d399,#10b981);border-radius:2px"></div>
+        </div>
+        <div class="card-micro" style="text-align:right;margin-top:2px;color:#4ade80">88% quorum reached</div>
+      </div>
+    </div>
+
+    <!-- ARROW 4→5 -->
+    <div class="flow-arrow">
+      <svg width="20" height="20" viewBox="0 0 20 20"><path d="M4 10h12M12 6l4 4-4 4" stroke="#F5C842" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <!-- STEP 5: AUTOMATED EXECUTION -->
+    <div class="step s5">
+      <div class="step-header">
+        <div class="step-num">5</div>
+        <div class="step-label">Auto-Execute</div>
+      </div>
+      <div class="step-card">
+        <div class="card-mini-title">Smart Contract Fires</div>
+        <div class="divider"></div>
+        <div class="vault">🏛️</div>
+        <div class="card-micro" style="text-align:center;color:rgba(245,200,66,.6);margin:2px 0">Community Treasury</div>
+        <div class="card-micro" style="text-align:center;margin-bottom:6px;color:rgba(255,255,255,.3)">Unlocked automatically · zero tampering</div>
+        <div class="project-badge">
+          <span style="font-size:11px">💧</span>
+          <span>Water pump repaired</span>
+        </div>
+        <div class="project-badge" style="margin-top:4px;background:rgba(245,200,66,.1);border-color:rgba(245,200,66,.3);color:var(--gold)">
+          <span style="font-size:11px">💰</span>
+          <span>₵2,400 → Vendor A</span>
+        </div>
+        <div style="margin-top:5px;padding:3px 6px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:5px">
+          <div class="card-micro" style="color:#4ade80">Move contract executed · immutable log</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TECH STACK -->
+  <div class="stack-section">
+    <div class="stack-header">⚙ Technical Stack</div>
+    <div class="stack-layer">
+      <div class="layer-label">UI Layer</div>
+      <div class="tech-chips">
+        <span class="chip chip-ui">Next.js</span>
+        <span class="chip chip-ui">React</span>
+        <span class="chip chip-ui">Wallet Connect</span>
+      </div>
+      <div class="layer-bar bar-ui"></div>
+    </div>
+    <div class="stack-layer">
+      <div class="layer-label">Processing</div>
+      <div class="tech-chips">
+        <span class="chip chip-mid">Node.js</span>
+        <span class="chip chip-mid">MongoDB</span>
+        <span class="chip chip-ai">Anthropic API</span>
+        <span class="chip chip-mid">Paystack</span>
+      </div>
+      <div class="layer-bar bar-mid"></div>
+    </div>
+    <div class="stack-layer">
+      <div class="layer-label">Trust Layer</div>
+      <div class="tech-chips">
+        <span class="chip chip-trust">Move Smart Contracts</span>
+        <span class="chip chip-trust">On-chain Voting</span>
+        <span class="chip chip-trust">Treasury Module</span>
+      </div>
+      <div class="layer-bar bar-trust"></div>
+    </div>
+  </div>
+
+  <!-- PITCH ANGLE -->
+  <div class="footer-note">
+    <div class="footer-icon">🕊️</div>
+    <div class="footer-text">
+      <strong>The "Loving Grace" principle:</strong> CivicNode does not replace human agency — it amplifies it. The AI acts as a hyper-efficient secretary: synthesizing information so humans can focus on what matters — <strong>deliberation, connection, and collective decision-making.</strong> The machine handles the grueling admin. The community holds the power.
+    </div>
+  </div>
+
+</div>

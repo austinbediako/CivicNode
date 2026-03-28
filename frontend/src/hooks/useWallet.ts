@@ -1,24 +1,22 @@
 "use client";
 
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useWallet as useProviderWallet } from "@/components/WalletProvider";
 
 /**
- * Custom hook wrapping wagmi wallet state via RainbowKit.
- * Provides connected state, address, connect/disconnect functions.
+ * Custom hook wrapping standard Sui wallet state.
  */
 export function useWallet() {
-  const { address, isConnected } = useAccount();
-  const { connectors, connect } = useConnect();
-  const { disconnect } = useDisconnect();
+  const { currentWallet, currentAccount, connect, disconnect, signTransaction, wallets } = useProviderWallet();
+
+  const isConnected = !!currentWallet;
+  const address = currentAccount?.address || null;
 
   return {
     connected: isConnected,
-    address: address ?? null,
-    connect: () => {
-      const connector = connectors[0];
-      if (connector) connect({ connector });
-    },
-    disconnect: () => disconnect(),
-    connectors,
+    address,
+    connect,
+    disconnect,
+    wallets,
+    signTransaction,
   };
 }

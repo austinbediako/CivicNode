@@ -5,7 +5,7 @@ import { ThumbsUp, ThumbsDown, Minus, Loader2 } from "lucide-react";
 import { VoteChoice, ProposalStatus } from "@/types";
 import { useWallet } from "@/hooks/useWallet";
 import { submitVoteRecord } from "@/lib/api";
-import { buildVoteTx } from "@/lib/aptos";
+import { buildVoteTx } from "@/lib/sui";
 import { cn } from "@/lib/utils";
 
 interface VoteButtonsProps {
@@ -67,8 +67,8 @@ export function VoteButtons({
       // Build and submit the on-chain transaction
       const payload = buildVoteTx(proposalId, choiceIndex);
 
-      // TODO(civicnode): Use real wallet adapter signAndSubmitTransaction
-      // For now, simulate a tx hash
+      // TODO(civicnode): Submit tx via wallet signTransaction once connected to live network
+      // For now, simulate a tx hash until Enoki wallet signing is wired up
       const txHash = `0x${Date.now().toString(16)}${"0".repeat(48)}`;
 
       // Record vote in backend

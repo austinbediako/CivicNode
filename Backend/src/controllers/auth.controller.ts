@@ -19,14 +19,31 @@ export async function verifyWallet(req: Request, res: Response): Promise<void> {
       message: string;
     };
 
-    // TODO(civicnode): Verify the signature cryptographically
-    // For now, we check that all fields are present (Zod already validated this)
-    // In production, use viem's verifyMessage or ethers to confirm the wallet owns the signature
     if (!signature || !message) {
       res.status(400).json({
         message: 'Signature and message are required for verification',
         code: 'AUTH_MISSING_FIELDS',
         statusCode: 400,
+      });
+      return;
+    }
+
+    try {
+      const { verifyPersonalMessageSignature } = await import('@mysten/sui/verify');
+      
+      const parsedMessage = new TextEncoder().encode(message);
+      const publicKey = await verifyPersonalMessageSignature(parsedMessage, signature);
+      const extractedAddress = publicKey.toSuiAddress();
+
+      if (extractedAddress !== walletAddress) {
+        throw new Error('Signature address mismatch');
+      }
+    } catch (err: any) {
+      console.warn(`[auth] Signature verification failed for ${walletAddress}: ${err.message}`);
+      res.status(401).json({
+        message: 'Invalid signature',
+        code: 'AUTH_INVALID_SIGNATURE',
+        statusCode: 401,
       });
       return;
     }

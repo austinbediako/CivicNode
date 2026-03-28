@@ -36,7 +36,7 @@ export function DraftEditor({
   const [budgetRequested, setBudgetRequested] = useState(
     initialDraft?.budgetRequested ?? 0
   );
-  const [currency, setCurrency] = useState(initialDraft?.currency ?? "APT");
+  const [currency, setCurrency] = useState(initialDraft?.currency ?? "SUI");
   const [actionItems, setActionItems] = useState<string[]>(
     initialDraft?.actionItems ?? [""]
   );
@@ -131,7 +131,7 @@ export function DraftEditor({
             onChange={(e) => setCurrency(e.target.value)}
             className="input-field"
           >
-            <option value="APT">APT</option>
+            <option value="SUI">SUI</option>
             <option value="GHS">GHS</option>
           </select>
         </div>

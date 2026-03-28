@@ -1,6 +1,6 @@
 import type { Proposal } from "@/types";
 import { ProposalStatusChip } from "./ProposalStatusChip";
-import { formatDate, formatAPT } from "@/lib/utils";
+import { formatDate, formatSUI } from "@/lib/utils";
 import { Calendar, Coins, User, FileText, ExternalLink } from "lucide-react";
 
 interface ProposalDetailProps {
@@ -122,7 +122,7 @@ export function ProposalDetail({ proposal }: ProposalDetailProps) {
             On-Chain Transaction
           </h2>
           <a
-            href={`https://explorer.aptoslabs.com/txn/${proposal.txHash}?network=testnet`}
+            href={`https://suiscan.xyz/testnet/tx/${proposal.txHash}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-primary-400 hover:text-primary-300 transition-colors text-sm font-mono"

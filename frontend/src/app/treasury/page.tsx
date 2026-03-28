@@ -40,7 +40,7 @@ const mockTransactions: Transaction[] = [
 ];
 
 function exportToCSV(transactions: Transaction[]) {
-  const headers = ["Date", "Amount (APT)", "Recipient", "Tx Hash"];
+  const headers = ["Date", "Amount (SUI)", "Recipient", "Tx Hash"];
   const rows = transactions.map((tx) => [
     new Date(tx.confirmedAt).toISOString(),
     tx.amount.toString(),
@@ -63,7 +63,7 @@ export default function TreasuryPage() {
   const treasuryData = useTreasury(user?.communityId ?? null);
 
   const transactions = treasuryData.transactions.length > 0 ? treasuryData.transactions : mockTransactions;
-  const balanceAPT = treasuryData.balanceAPT || 1250.75;
+  const balanceSUI = treasuryData.balanceSUI || 1250.75;
   const balanceGHS = treasuryData.balanceGHS || 106313.75;
   const isLoading = treasuryData.isLoading;
 
@@ -88,7 +88,7 @@ export default function TreasuryPage() {
         </div>
 
         {/* Balance Card */}
-        <TreasuryBalance balanceAPT={balanceAPT} balanceGHS={balanceGHS} />
+        <TreasuryBalance balanceSUI={balanceSUI} balanceGHS={balanceGHS} />
 
         {/* Transaction History */}
         <div className="card">

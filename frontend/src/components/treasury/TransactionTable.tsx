@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ExternalLink, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 import type { Transaction } from "@/types";
-import { formatDate, formatAPT, truncateAddress, cn } from "@/lib/utils";
+import { formatDate, formatSUI, truncateAddress, cn } from "@/lib/utils";
 
 interface TransactionTableProps {
   transactions: Transaction[];
@@ -99,14 +99,14 @@ export function TransactionTable({
                     {formatDate(tx.confirmedAt)}
                   </td>
                   <td className="py-3 px-4 text-dark-100 font-medium">
-                    {formatAPT(tx.amount)}
+                    {formatSUI(tx.amount)}
                   </td>
                   <td className="py-3 px-4 font-mono text-dark-300">
                     {truncateAddress(tx.recipient)}
                   </td>
                   <td className="py-3 px-4">
                     <a
-                      href={`https://explorer.aptoslabs.com/txn/${tx.txHash}?network=testnet`}
+                      href={`https://suiscan.xyz/testnet/tx/${tx.txHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-primary-400 hover:text-primary-300 transition-colors font-mono"

@@ -25,7 +25,7 @@ const statsPlaceholder = [
   },
   {
     label: "Treasury Balance",
-    value: "1,250 APT",
+    value: "1,250 SUI",
     icon: Wallet,
     color: "text-blue-400",
     bgColor: "bg-blue-600/20",

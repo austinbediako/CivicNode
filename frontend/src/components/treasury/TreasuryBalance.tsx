@@ -1,13 +1,13 @@
 import { Wallet } from "lucide-react";
-import { formatAPT, formatGHS } from "@/lib/utils";
+import { formatSUI, formatGHS } from "@/lib/utils";
 
 interface TreasuryBalanceProps {
-  balanceAPT: number;
+  balanceSUI: number;
   balanceGHS: number;
 }
 
 export function TreasuryBalance({
-  balanceAPT,
+  balanceSUI,
   balanceGHS,
 }: TreasuryBalanceProps) {
   return (
@@ -23,10 +23,10 @@ export function TreasuryBalance({
       </div>
       <div>
         <p className="text-3xl sm:text-4xl font-bold text-dark-50 mb-1">
-          {formatAPT(balanceAPT)}
+          {formatSUI(balanceSUI)}
         </p>
         <p className="text-lg text-dark-400">
-          {formatGHS(balanceAPT)}
+          {formatGHS(balanceSUI)}
         </p>
       </div>
     </div>

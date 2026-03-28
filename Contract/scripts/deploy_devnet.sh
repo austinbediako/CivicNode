@@ -1,9 +1,10 @@
 #!/bin/bash
 set -e
 echo "Compiling Move modules..."
-aptos move compile --named-addresses civicnode=default
+sui move build
 echo "Running tests..."
-aptos move test --named-addresses civicnode=default
+sui move test
 echo "Publishing to devnet..."
-aptos move publish --named-addresses civicnode=default --profile devnet --assume-yes
+sui client publish --gas-budget 100000000
 echo "Deployed successfully to devnet!"
+echo "Copy the Package ID from the output above and set it as SUI_PACKAGE_ID in your .env"

@@ -3,7 +3,7 @@ import { Proposal, ProposalStatus } from '../models/Proposal.js';
 import { Community } from '../models/Community.js';
 import { Transaction } from '../models/Transaction.js';
 import { Vote, VoteChoice } from '../models/Vote.js';
-import { executeProposal } from './aptos.js';
+import { executeProposal } from './sui.js';
 
 let cronTask: ScheduledTask | undefined;
 

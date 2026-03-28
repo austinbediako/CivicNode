@@ -1,6 +1,6 @@
-export const BLOCK_EXPLORER_BASE_URL = "https://etherscan.io";
+export const BLOCK_EXPLORER_BASE_URL = "https://suiscan.xyz";
 export const CONTRACT_MODULE_ADDRESS =
-  process.env.NEXT_PUBLIC_CONTRACT_ADDRESS ?? "";
+  process.env.NEXT_PUBLIC_SUI_PACKAGE_ID ?? "";
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 

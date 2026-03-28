@@ -28,7 +28,7 @@ export interface VoteTally {
 
 export interface TreasuryData {
   communityId: string;
-  balanceAPT: number;
+  balanceSUI: number;
   balanceGHS: number;
   transactions: import("@civicnode/shared-types").Transaction[];
   totalDisbursed: number;
@@ -55,11 +55,11 @@ export interface ToastMessage {
   type: "success" | "error" | "info" | "warning";
 }
 
-export type AptosTransaction = {
+export type SuiTransaction = {
   payload: {
     type: string;
-    function: string;
-    type_arguments: string[];
+    target: string;
+    typeArguments: string[];
     arguments: string[];
   };
 };
