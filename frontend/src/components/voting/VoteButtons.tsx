@@ -50,7 +50,7 @@ export function VoteButtons({
   hasVoted,
   onVoteSuccess,
 }: VoteButtonsProps) {
-  const { connected } = useWallet();
+  const { connected, signAndExecuteTransaction } = useWallet();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<VoteChoice | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -66,14 +66,18 @@ export function VoteButtons({
     setError(null);
 
     try {
-      // Build and submit the on-chain transaction
-      const payload = buildVoteTx(communityObjectId, proposalId, choiceIndex);
+      // Build the on-chain vote transaction
+      const tx = buildVoteTx(communityObjectId, proposalId, choiceIndex);
 
-      // TODO(civicnode): Submit tx via wallet signTransaction once connected to live network
-      // For now, simulate a tx hash until Enoki wallet signing is wired up
-      const txHash = `0x${Date.now().toString(16)}${"0".repeat(48)}`;
+      // Sign and execute on-chain via the connected wallet (Enoki zkLogin)
+      const result = await signAndExecuteTransaction(tx);
+      const txHash = result?.digest || result?.hash;
 
-      // Record vote in backend
+      if (!txHash) {
+        throw new Error("Transaction submitted but no digest returned");
+      }
+
+      // Record the vote in the backend (mirror for fast querying)
       await submitVoteRecord(proposalId, choice, txHash);
       onVoteSuccess();
     } catch (err) {

@@ -26,7 +26,7 @@ export function TreasuryBalance({
           {formatSUI(balanceSUI)}
         </p>
         <p className="text-lg text-dark-400">
-          {formatGHS(balanceSUI)}
+          {formatGHS(balanceGHS)}
         </p>
       </div>
     </div>

@@ -45,3 +45,4 @@ Contract/.aptos/
 # Misc
 *.pem
 *.key
+.gstack/
