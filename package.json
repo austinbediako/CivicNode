@@ -1,0 +1,23 @@
+{
+  "name": "civicnode",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered community governance platform for Ghana",
+  "scripts": {
+    "dev": "concurrently -n frontend,backend -c blue,green \"pnpm --filter frontend dev\" \"pnpm --filter Backend dev\"",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "setup": "pnpm install && pnpm --filter @civicnode/shared-types build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.4"
+}

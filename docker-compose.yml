@@ -1,0 +1,21 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: civicnode-mongo
+    ports:
+      - '27017:27017'
+    volumes:
+      - civicnode-mongo:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: civicnode
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: civicnode-redis
+    ports:
+      - '6379:6379'
+    restart: unless-stopped
+
+volumes:
+  civicnode-mongo:

@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* CivicNode brand palette mapped to shadcn variables */
+    --background: 210 33% 96%;
+    --foreground: 213 64% 21%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 213 64% 21%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 213 64% 21%;
+
+    --primary: 256 43% 44%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 168 80% 27%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 20% 93%;
+    --muted-foreground: 213 30% 45%;
+
+    --accent: 210 20% 90%;
+    --accent-foreground: 213 64% 21%;
+
+    --destructive: 8 100% 33%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 20% 85%;
+    --input: 214 20% 85%;
+    --ring: 256 43% 44%;
+
+    --radius: 0.75rem;
+
+    /* Ghana brand colors */
+    --color-navy: #0F2D5A;
+    --color-purple: #4B3F9E;
+    --color-teal: #0D7B6A;
+    --color-amber-gov: #B8860B;
+    --color-danger-gov: #A61C00;
+    --color-ghana-red: #CE1126;
+    --color-ghana-gold: #F5C842;
+    --color-ghana-green: #006B3F;
+    --color-surface-light: #F0F4F8;
+    --color-surface-dark: #0A1628;
+  }
+
+  .dark {
+    --background: 220 40% 8%;
+    --foreground: 210 20% 92%;
+
+    --card: 220 35% 10%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 220 35% 10%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 256 50% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 168 80% 35%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 25% 14%;
+    --muted-foreground: 215 15% 60%;
+
+    --accent: 220 25% 18%;
+    --accent-foreground: 210 20% 92%;
+
+    --destructive: 0 63% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 20% 18%;
+    --input: 220 20% 18%;
+    --ring: 256 50% 55%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sora), system-ui, sans-serif;
+  }
+
+  .font-mono, code, pre {
+    font-family: var(--font-jetbrains), monospace;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-navy-200 rounded-full dark:bg-navy-700;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-navy-300 dark:bg-navy-600;
+  }
+}
+
+@layer components {
+  .kente-stripe {
+    height: 4px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--color-ghana-red) 0px,
+      var(--color-ghana-red) 20px,
+      var(--color-ghana-gold) 20px,
+      var(--color-ghana-gold) 40px,
+      var(--color-ghana-green) 40px,
+      var(--color-ghana-green) 60px
+    );
+  }
+
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-purple focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-surface-dark;
+  }
+
+  .ghana-bg-pattern {
+    background-image:
+      linear-gradient(135deg, rgba(206, 17, 38, 0.04) 25%, transparent 25%),
+      linear-gradient(225deg, rgba(245, 200, 66, 0.04) 25%, transparent 25%),
+      linear-gradient(315deg, rgba(0, 107, 63, 0.04) 25%, transparent 25%),
+      linear-gradient(45deg, rgba(206, 17, 38, 0.03) 25%, transparent 25%);
+    background-size: 60px 60px;
+  }
+}
+
+@layer utilities {
+  .text-gradient-civic {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-purple to-teal;
+  }
+
+  .inset-shadow-2xs {
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  }
+
+  .dark .inset-shadow-white\/20 {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  }
+}
