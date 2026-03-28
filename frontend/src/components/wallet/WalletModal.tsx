@@ -1,21 +1,28 @@
 "use client";
 
 import { useWallet } from "@/hooks/useWallet";
+import { useWallets, useConnectWallet } from "@mysten/dapp-kit";
+import { isEnokiWallet, isGoogleWallet, isTwitchWallet } from "@mysten/enoki";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 /**
- * Wallet connection and authentication UI (header version).
- * Flow: Connect wallet → sign message → verify with backend → get JWT.
- * Shows Enoki OAuth options (Google, Twitch) with branded icons.
+ * Wallet connection UI for the header.
+ * Uses dApp Kit + Enoki: shows Google/Twitch OAuth buttons.
  */
 export function WalletModal() {
-  const { connected, address, connect, disconnect, wallets, isAuthenticating, authError } = useWallet();
+  const { connected, address, disconnect, isAuthenticating, authError } = useWallet();
+  const { mutateAsync: connectWallet, isPending } = useConnectWallet();
+  const allWallets = useWallets();
+  const enokiWallets = allWallets.filter(isEnokiWallet);
   const [isOpen, setIsOpen] = useState(false);
   const [connectError, setConnectError] = useState<string | null>(null);
 
-  // Authenticating state
-  if (isAuthenticating) {
+  const googleWallet = enokiWallets.find(isGoogleWallet);
+  const twitchWallet = enokiWallets.find(isTwitchWallet);
+
+  // Authenticating or connecting
+  if (isAuthenticating || isPending) {
     return (
       <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-dark-800 border border-dark-700 text-sm">
         <Loader2 className="w-4 h-4 text-primary-400 animate-spin" />
@@ -24,7 +31,7 @@ export function WalletModal() {
     );
   }
 
-  // Connected and authenticated
+  // Connected
   if (connected && address) {
     return (
       <div className="flex items-center gap-2">
@@ -32,10 +39,7 @@ export function WalletModal() {
           <span className="text-xs text-accent-400" title={authError}>Auth failed</span>
         )}
         <button
-          onClick={() => {
-            disconnect();
-            setIsOpen(false);
-          }}
+          onClick={() => { disconnect(); setIsOpen(false); }}
           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-dark-800 border border-dark-700 focus:outline-none hover:border-dark-600 transition-colors text-sm"
           title="Click to disconnect"
         >
@@ -48,55 +52,51 @@ export function WalletModal() {
     );
   }
 
-  const enokiWallets = wallets.filter((w) => w.name.includes("Enoki"));
+  const handleConnect = async (wallet: any) => {
+    setConnectError(null);
+    try {
+      await connectWallet({ wallet });
+      setIsOpen(false);
+    } catch (err: any) {
+      setConnectError(err.message || "Connection failed");
+    }
+  };
 
-  // Disconnected — show connect button with dropdown
+  // Disconnected — show connect dropdown
   return (
     <div className="relative">
       <button
         onClick={() => { setIsOpen(!isOpen); setConnectError(null); }}
         className="flex items-center gap-2 text-sm px-4 py-2 rounded-lg bg-primary-600 hover:bg-primary-500 transition-colors text-white font-medium focus:outline-none"
       >
-        Connect Wallet
+        Sign In
       </button>
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-60 bg-dark-800 border border-dark-700 rounded-xl shadow-xl overflow-hidden z-50">
-          <div className="px-3 py-2 border-b border-dark-700">
-            <span className="text-xs font-medium text-dark-400 uppercase tracking-wider">Sign in with zkLogin</span>
-          </div>
           <div className="p-2 flex flex-col gap-1">
-            {enokiWallets.length > 0 ? (
-              enokiWallets.map((wallet) => {
-                const isGoogle = wallet.name.toLowerCase().includes("google");
-                const isTwitch = wallet.name.toLowerCase().includes("twitch");
-                return (
-                  <button
-                    key={wallet.name}
-                    onClick={async () => {
-                      setConnectError(null);
-                      try {
-                        await connect(wallet.name);
-                        setIsOpen(false);
-                      } catch (err: any) {
-                        setConnectError(err.message || "Connection failed");
-                        console.error("Failed to connect", err);
-                      }
-                    }}
-                    className="flex items-center gap-3 px-3 py-2.5 text-sm text-dark-200 hover:bg-dark-700 hover:text-white rounded-lg transition-colors focus:outline-none"
-                  >
-                    {isGoogle && <GoogleIcon />}
-                    {isTwitch && <TwitchIcon />}
-                    <span>
-                      {isGoogle ? "Continue with Google" : isTwitch ? "Continue with Twitch" : wallet.name.replace("Enoki: ", "Continue with ")}
-                    </span>
-                  </button>
-                );
-              })
-            ) : (
+            {googleWallet && (
+              <button
+                onClick={() => handleConnect(googleWallet)}
+                className="flex items-center gap-3 px-3 py-2.5 text-sm text-dark-200 hover:bg-dark-700 hover:text-white rounded-lg transition-colors focus:outline-none w-full"
+              >
+                <GoogleIcon />
+                <span>Sign in with Google</span>
+              </button>
+            )}
+            {twitchWallet && (
+              <button
+                onClick={() => handleConnect(twitchWallet)}
+                className="flex items-center gap-3 px-3 py-2.5 text-sm text-dark-200 hover:bg-dark-700 hover:text-white rounded-lg transition-colors focus:outline-none w-full"
+              >
+                <TwitchIcon />
+                <span>Sign in with Twitch</span>
+              </button>
+            )}
+            {!googleWallet && !twitchWallet && (
               <div className="px-3 py-3 text-sm text-dark-400 flex items-center gap-2">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                Loading wallets…
+                Loading…
               </div>
             )}
           </div>

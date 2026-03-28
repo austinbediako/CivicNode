@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@mysten/dapp-kit": "^1.0.4",
     "@mysten/enoki": "^1.0.4",
     "@mysten/sui": "^2.13.0",
     "@mysten/wallet-standard": "^0.20.1",

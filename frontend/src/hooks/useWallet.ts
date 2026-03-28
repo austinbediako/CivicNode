@@ -1,35 +1,30 @@
 "use client";
 
-import { useWallet as useProviderWallet } from "@/components/WalletProvider";
+import {
+  useCurrentAccount,
+  useDisconnectWallet,
+} from "@mysten/dapp-kit";
+import { useAuthState } from "@/components/AuthProvider";
+import { clearToken } from "@/lib/auth";
 
 /**
- * Custom hook wrapping standard Sui wallet state.
- * Exposes wallet connection, auth status, and transaction signing.
+ * Custom hook wrapping @mysten/dapp-kit wallet state + auth state.
  */
 export function useWallet() {
-  const {
-    currentWallet,
-    currentAccount,
-    connect,
-    disconnect,
-    signTransaction,
-    signAndExecuteTransaction,
-    wallets,
-    isAuthenticating,
-    authError,
-  } = useProviderWallet();
+  const currentAccount = useCurrentAccount();
+  const { mutate: dappDisconnect } = useDisconnectWallet();
+  const { isAuthenticating, authError } = useAuthState();
 
-  const isConnected = !!currentWallet;
-  const address = currentAccount?.address || null;
+  const disconnect = () => {
+    clearToken();
+    dappDisconnect();
+    window.dispatchEvent(new Event("civicnode:auth-change"));
+  };
 
   return {
-    connected: isConnected,
-    address,
-    connect,
+    connected: !!currentAccount,
+    address: currentAccount?.address || null,
     disconnect,
-    wallets,
-    signTransaction,
-    signAndExecuteTransaction,
     isAuthenticating,
     authError,
   };

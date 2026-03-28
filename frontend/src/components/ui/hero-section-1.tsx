@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button'
 import { AnimatedGroup } from '@/components/ui/animated-group'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
-import { useWallet } from '@/hooks/useWallet'
-import type { Wallet } from '@mysten/wallet-standard'
+import { useWallets, useConnectWallet, useCurrentAccount } from '@mysten/dapp-kit'
+import { isEnokiWallet, isGoogleWallet, isTwitchWallet } from '@mysten/enoki'
 
 const transitionVariants = {
     item: {
@@ -322,9 +322,15 @@ const HeroHeader = () => {
 
 const HeroConnectButton = () => {
     const { isAuthenticated } = useAuth()
-    const { wallets, connect, connected, isAuthenticating } = useWallet()
+    const currentAccount = useCurrentAccount()
+    const { mutateAsync: connectWallet, isPending } = useConnectWallet()
+    const allWallets = useWallets()
+    const enokiWallets = allWallets.filter(isEnokiWallet)
     const router = useRouter()
     const [error, setError] = React.useState<string | null>(null)
+
+    const googleWallet = enokiWallets.find(isGoogleWallet)
+    const twitchWallet = enokiWallets.find(isTwitchWallet)
 
     if (isAuthenticated) {
         return (
@@ -337,7 +343,7 @@ const HeroConnectButton = () => {
         )
     }
 
-    if (isAuthenticating || connected) {
+    if (isPending || currentAccount) {
         return (
             <div className="flex items-center gap-3 px-5 py-3">
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
@@ -346,12 +352,10 @@ const HeroConnectButton = () => {
         )
     }
 
-    const enokiWallets = wallets.filter((w: Wallet) => w.name.includes('Enoki'))
-
-    const handleConnect = async (walletName: string) => {
+    const handleConnect = async (wallet: any) => {
         setError(null)
         try {
-            await connect(walletName)
+            await connectWallet({ wallet })
         } catch (err: any) {
             setError(err.message || 'Connection failed')
         }
@@ -360,35 +364,26 @@ const HeroConnectButton = () => {
     return (
         <div className="flex flex-col items-center gap-3">
             <div className="flex flex-col sm:flex-row items-center gap-2">
-                {enokiWallets.length > 0 ? (
-                    enokiWallets.map((wallet: Wallet) => {
-                        const isGoogle = wallet.name.toLowerCase().includes('google')
-                        const isTwitch = wallet.name.toLowerCase().includes('twitch')
-                        return (
-                            <button
-                                key={wallet.name}
-                                onClick={() => handleConnect(wallet.name)}
-                                className="flex items-center gap-3 px-5 py-3 rounded-xl bg-background border border-border hover:border-foreground/20 hover:bg-accent/50 transition-all duration-200 text-sm font-medium text-foreground shadow-sm min-w-[200px] justify-center">
-                                {isGoogle && <GoogleIcon />}
-                                {isTwitch && <TwitchIcon />}
-                                {!isGoogle && !isTwitch && <Shield className="w-4 h-4" />}
-                                <span>
-                                    {isGoogle ? 'Sign in with Google' : isTwitch ? 'Sign in with Twitch' : wallet.name.replace('Enoki: ', 'Sign in with ')}
-                                </span>
-                            </button>
-                        )
-                    })
-                ) : (
-                    <div className="flex items-center gap-2 px-5 py-3 text-sm text-muted-foreground">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Loading sign-in options…
-                    </div>
+                {googleWallet && (
+                    <button
+                        onClick={() => handleConnect(googleWallet)}
+                        className="flex items-center gap-3 px-5 py-3 rounded-xl bg-background border border-border hover:border-foreground/20 hover:bg-accent/50 transition-all duration-200 text-sm font-medium text-foreground shadow-sm min-w-[200px] justify-center">
+                        <GoogleIcon />
+                        <span>Sign in with Google</span>
+                    </button>
+                )}
+                {twitchWallet && (
+                    <button
+                        onClick={() => handleConnect(twitchWallet)}
+                        className="flex items-center gap-3 px-5 py-3 rounded-xl bg-background border border-border hover:border-foreground/20 hover:bg-accent/50 transition-all duration-200 text-sm font-medium text-foreground shadow-sm min-w-[200px] justify-center">
+                        <TwitchIcon />
+                        <span>Sign in with Twitch</span>
+                    </button>
                 )}
             </div>
             {error && (
                 <p className="text-sm text-destructive">{error}</p>
             )}
-            <p className="text-xs text-muted-foreground">Powered by Enoki zkLogin — no extensions needed</p>
         </div>
     )
 }

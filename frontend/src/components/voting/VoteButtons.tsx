@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ThumbsUp, ThumbsDown, Minus, Loader2 } from "lucide-react";
 import { VoteChoice, ProposalStatus } from "@/types";
-import { useWallet } from "@/hooks/useWallet";
+import { useSignAndExecuteTransaction, useCurrentAccount } from "@mysten/dapp-kit";
 import { submitVoteRecord } from "@/lib/api";
 import { buildVoteTx } from "@/lib/sui";
 import { cn } from "@/lib/utils";
@@ -50,11 +50,13 @@ export function VoteButtons({
   hasVoted,
   onVoteSuccess,
 }: VoteButtonsProps) {
-  const { connected, signAndExecuteTransaction } = useWallet();
+  const currentAccount = useCurrentAccount();
+  const { mutateAsync: signAndExecuteTransaction } = useSignAndExecuteTransaction();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedChoice, setSelectedChoice] = useState<VoteChoice | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const connected = !!currentAccount;
   const isDisabled =
     !connected || hasVoted || proposalStatus !== ProposalStatus.LIVE || isSubmitting;
 
@@ -69,16 +71,15 @@ export function VoteButtons({
       // Build the on-chain vote transaction
       const tx = buildVoteTx(communityObjectId, proposalId, choiceIndex);
 
-      // Sign and execute on-chain via the connected wallet (Enoki zkLogin)
-      const result = await signAndExecuteTransaction(tx);
-      const txHash = result?.digest || result?.hash;
+      // Sign and execute on-chain via dApp Kit (Enoki handles zkLogin signature)
+      const { digest } = await signAndExecuteTransaction({ transaction: tx });
 
-      if (!txHash) {
+      if (!digest) {
         throw new Error("Transaction submitted but no digest returned");
       }
 
       // Record the vote in the backend (mirror for fast querying)
-      await submitVoteRecord(proposalId, choice, txHash);
+      await submitVoteRecord(proposalId, choice, digest);
       onVoteSuccess();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Vote failed");
